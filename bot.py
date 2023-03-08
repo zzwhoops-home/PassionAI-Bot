@@ -5,7 +5,6 @@ from cogs.Listeners import Listeners
 from cogs.AI import AI
 
 import pymongo
-from pymongo import MongoClient
 import asyncio
 
 import os

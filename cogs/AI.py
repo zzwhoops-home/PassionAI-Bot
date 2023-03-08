@@ -90,3 +90,6 @@ class AI(commands.Cog):
             await ctx.channel.send(f"{ctx.author.mention} Hey, this response may be cut off due to API limitations!")
             return
 
+    @commands.command(name="finetune", aliases=["ft"])
+    async def fine_tune(self, ctx):
+        return
