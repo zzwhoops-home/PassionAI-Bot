@@ -1,8 +1,10 @@
 import nextcord
 from nextcord.ext import commands
 
+import math
 import json
 import os
+import asyncio
 
 from dotenv import load_dotenv
 import openai
@@ -11,18 +13,19 @@ import pandas as pd
 # import matplotlib.pyplot as plt
 # import plotly.express as px
 # from scipy import spatial
-from sklearn.decomposition import PCA
 import numpy as np
 from openai.embeddings_utils import distances_from_embeddings
-import json
 
-openai.api_key = os.environ['openai']
+openai.api_key = os.getenv('OPENAI_KEY')
 
 # convert to numpy arrays
 df = pd.read_csv("processed/embeddings.csv", index_col=0)
 df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
 df.head()
+
+# dictionary to ensure users are not already in a chat session
+chat_sessions = {}
 
 class AI(commands.Cog):
     def __init__(self, bot):
@@ -71,55 +74,122 @@ class AI(commands.Cog):
 
     @commands.command(name="chat", aliases=["ch"])
     async def embeddings_model(self, ctx, *question: str):
-        messages = ""
-
         length = -1
-        max_len = 1024
-        model="gpt-3.5-turbo"
-        max_tokens=512
-        stop_sequence=None
+        question = f"{' '.join(question)}"
 
         for word in question:
             length += len(word) + 1
         if (length == -1):
-            await ctx.channel.send(f"{ctx.author.mention} Please enter something you want to ask me.")
+            await ctx.channel.send(f"{ctx.author.mention}, please enter something you want to ask me.")
             return
-        if (length > 300):
-            await ctx.channel.send(f"{ctx.author.mention} Hey, try to keep your requests under 300 characters.")
+        if (length > 512):
+            await ctx.channel.send(f"{ctx.author.mention}, hey, try to keep your requests under 512 characters.")
             return
+        if (ctx.author.id in chat_sessions):
+            if (chat_sessions[ctx.author.id]):
+                await ctx.channel.send(f"{ctx.author.mention}, you are already in an active chat instance. Please type **'end'** or **'q'** to end your current chat instance.")
+                return
+
+        chat_sessions[ctx.author.id] = True
         
-        response = self.ask_question_v35(df, question=question)
-        if context == None:
-            context = self.create_context(question, df, max_len, size="ada")
-            messages.extend([{
-            "role": "assistant",
-            "content": context
-            }, {
+        context = ""
+        messages = [{
+            "role": "system",
+            "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the user's passions."
+        }, 
+        {
             "role": "user",
-            "content": question
-            }])
-        else:
-            messages.append({"role": "user", "content": question})
-        temperature = 1.0
+            "content": "Answer the question based on the information provided, and always attempt to synthesize the information into a unique personality. Always attempt to answer the question AND PRIORITIZE using the information given, however you may draw from prior knowledge as well. There are five tiers: low, medium-low, neutral, medium-high, and high, which represent how strongly a passion affects a person's personality. Any tier below 'neutral' should be treated as if the passion were the opposite. PRETEND THAT YOU ARE A HUMAN, AND NEVER SAY THAT YOU CANNOT GIVE AN OPINION OR VOICE A SUGGESTION."
+        }]
+        max_len = 1024
+        model="gpt-3.5-turbo"
+        max_tokens=512
+        stop_sequence=None
+        explicit = "Answer based on my passions:"
 
-        print(f"Temperature: {temperature}\n")
-        print(messages)
+        await ctx.channel.send(f"{ctx.author.mention}, you are now starting a chat instance. Please note that embeddings will only be generated for the question __**you included with the command.**__\nBe sure to list all of the passions you want to include after pq!chat.\n**To end the chat instance**, send **'end'** or the letter **'q'**.")
+        
         try:
-            response = openai.ChatCompletion.create(model=model,
-                                                    messages=messages,
-                                                    temperature=temperature,
-                                                    max_tokens=max_tokens,
-                                                    top_p=1,
-                                                    frequency_penalty=0,
-                                                    presence_penalty=0,
-                                                    stop=stop_sequence)
-
-            # convert to json, extract text with no new lines
-            response_json = json.loads(str((response)))
-            text = response_json['choices'][0]['message']['content'].strip()
+            context = self.create_context(question, df, max_len, size="ada")
         except Exception as e:
             print(e)
-            await ctx.channel.send("An error occurred. Please let Zach know.")
+            await ctx.channel.send(f"Error: {e.message}. Please try again, this error may happen after a long period with no API activity.")
+        messages.extend([{
+                "role": "assistant",
+                "content": context
+                }, {
+                "role": "user",
+                "content": f"{explicit} {question}"
+                }])
+
+        while True:
+            placeholder = await ctx.channel.send("https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjU4ZW9tcHhpeWQ0dGZpYnprNTc4ODgzdm40ZzFwa256MWFyZGhsdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/uBt1p1imV3MExnFoQs/giphy.gif")
+            temperature = 1.0
+
+            # print(f"Temperature: {temperature}\n")
+            # print(messages)
+            try:
+                response = openai.ChatCompletion.create(model=model,
+                                                        messages=messages,
+                                                        temperature=temperature,
+                                                        max_tokens=max_tokens,
+                                                        top_p=1,
+                                                        frequency_penalty=0,
+                                                        presence_penalty=0,
+                                                        stop=stop_sequence)
+
+                # convert to json, extract text with no new lines
+                response_json = json.loads(str((response)))
+                text = response_json['choices'][0]['message']['content'].strip()
+                # add to conversation history
+                messages.append({"role": "assistant", "content": text})
+                await placeholder.edit(content=f"{ctx.author.mention}, {text}")
+            except Exception as e:
+                print(e)
+                await ctx.channel.send(f"{ctx.author.mention} An error occurred. Please let Zach know.\nEnding chat...")
+                await end_chat()
+                return
+
+            async def end_chat():
+                msg_max_len = 4000
+
+                await ctx.channel.send(f"{ctx.author.mention}, ending chat instance...")
+                chat_sessions[ctx.author.id] = False
+
+                cur_text = ""
+                for m in range(len(messages) - 3):
+                    # get after system message and embeddings message
+                    block = messages[m + 3]
+                    cur_text += f"{block['role'].capitalize()}: {block['content']}\n"
+
+                story = []
+                for i in range(math.ceil(len(cur_text) / msg_max_len)):
+                    story.append(cur_text[0:msg_max_len])
+                    cur_text = cur_text[msg_max_len:]
+
+                for i in range(len(story)):
+                    embed = nextcord.Embed(title=f"Your finished chat log (Part **{i + 1}** of **{len(story)}**):", description=f"{story[i]}")
+                    await ctx.channel.send(embed=embed)
+                return
+
+            def check(m):
+                return m.channel == ctx.channel and m.author.id != self.bot.user.id and not m.content.startswith("pq!") and m.author.id == ctx.author.id
+            try:
+                message = await self.bot.wait_for('message', timeout=180.0, check=check)
+                # make answering based on passions explicitly stated
+                text = (message.content).strip()
+                text_explicit_passions = f"{explicit} {text}"
+                if (text.lower() == "q" or text.lower() == "end"):
+                    await end_chat()
+                    return
+                # add to conversation history
+                messages.append({"role": "user", "content": text_explicit_passions})
+            except asyncio.TimeoutError:
+                await ctx.channel.send(f"{ctx.author.mention}, You took over 3 minutes to write a response.")
+                await end_chat()
+                return
+            
+
 
     def create_context(self, question, df, max_len=1024, size="ada"):
         # get openai embeddings for the question
@@ -143,7 +213,7 @@ class AI(commands.Cog):
             results.append(row["text"])
 
         # print embeddings used
-        print("\n\n###\n\n".join(results))
+        # print("\n\n###\n\n".join(results))
         return "\n\n###\n\n".join(results)
 
 
