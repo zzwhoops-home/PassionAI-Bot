@@ -5,6 +5,7 @@ import math
 import json
 import os
 import asyncio
+from datetime import datetime
 
 from dotenv import load_dotenv
 import openai
@@ -15,6 +16,8 @@ import pandas as pd
 # from scipy import spatial
 import numpy as np
 from openai.embeddings_utils import distances_from_embeddings
+
+import pymongo
 
 openai.api_key = os.getenv('OPENAI_KEY')
 
@@ -105,7 +108,7 @@ class AI(commands.Cog):
         model="gpt-3.5-turbo"
         max_tokens=512
         stop_sequence=None
-        explicit = "Answer based on my passions:"
+        explicit = "Answer based on the passions provided:"
 
         await ctx.channel.send(f"{ctx.author.mention}, you are now starting a chat instance. Please note that embeddings will only be generated for the question __**you included with the command.**__\nBe sure to list all of the passions you want to include after pq!chat.\n**To end the chat instance**, send **'end'** or the letter **'q'**.")
         
@@ -114,6 +117,7 @@ class AI(commands.Cog):
         except Exception as e:
             print(e)
             await ctx.channel.send(f"Error: {e.message}. Please try again, this error may happen after a long period with no API activity.")
+
         messages.extend([{
                 "role": "assistant",
                 "content": context
@@ -152,15 +156,31 @@ class AI(commands.Cog):
 
             async def end_chat():
                 msg_max_len = 4000
+                # Get the current date and time
+                current_datetime = datetime.now()
 
                 await ctx.channel.send(f"{ctx.author.mention}, ending chat instance...")
                 chat_sessions[ctx.author.id] = False
 
                 cur_text = ""
+                to_database = [{
+                    "role": "system",
+                    "content": messages[0]['content']
+                },
+                {
+                    "role": "user",
+                    "content": messages[1]['content']
+                }]
                 for m in range(len(messages) - 3):
                     # get after system message and embeddings message
                     block = messages[m + 3]
-                    cur_text += f"{block['role'].capitalize()}: {block['content']}\n"
+                    role = block['role']
+                    content = block['content']
+                    cur_text += f"{role.capitalize()}: {content}\n"
+                    to_database.append({
+                        "role": role,
+                        "content": content
+                    })
 
                 story = []
                 for i in range(math.ceil(len(cur_text) / msg_max_len)):
@@ -169,7 +189,19 @@ class AI(commands.Cog):
 
                 for i in range(len(story)):
                     embed = nextcord.Embed(title=f"Your finished chat log (Part **{i + 1}** of **{len(story)}**):", description=f"{story[i]}")
-                    await ctx.channel.send(embed=embed)
+                    await ctx.channel.send(f"{ctx.author.mention}", embed=embed)
+
+                # get current id
+                id = (await self.counter())['count']
+                data = {
+                    'id': id,
+                    'datetime': current_datetime,
+                    'user_id': ctx.author.id,
+                    'username': ctx.author.name,
+                    'discriminator': ctx.author.discriminator,
+                    'chat_log': to_database
+                }
+                self.bot.chat_history.insert_one(data)
                 return
 
             def check(m):
@@ -188,8 +220,16 @@ class AI(commands.Cog):
                 await ctx.channel.send(f"{ctx.author.mention}, You took over 3 minutes to write a response.")
                 await end_chat()
                 return
-            
 
+    async def counter(self):
+        filter = {}
+        data = {
+            "$inc": {
+                "count": 1
+            }
+        }
+        data = self.bot.counter.find_one_and_update(filter=filter, update=data, return_document=pymongo.ReturnDocument.BEFORE)
+        return data
 
     def create_context(self, question, df, max_len=1024, size="ada"):
         # get openai embeddings for the question
