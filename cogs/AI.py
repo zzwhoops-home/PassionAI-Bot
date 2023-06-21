@@ -202,14 +202,28 @@ class AI(commands.Cog):
                         "role": "user",
                         "content": messages_ai[1]['content']
                     }]
+                    # duplicate array
+                    to_database_user = to_database_ai[:]
+
                 for m in range(len(messages_ai) - 3):
                     # get after system message and embeddings message
                     block = messages_ai[m + 3]
                     role = block['role']
                     content = block['content']
-                    cur_text += f"{role.capitalize()}: {content}\n"
                     if (store_db):
                         to_database_ai.append({
+                            "role": role,
+                            "content": content
+                        })
+
+                for m in range(len(messages_user) - 3):
+                    # get after system message and embeddings message
+                    block = messages_user[m + 3]
+                    role = block['role']
+                    content = block['content']
+                    cur_text += f"{role.capitalize()}: {content}\n"
+                    if (store_db):
+                        to_database_user.append({
                             "role": role,
                             "content": content
                         })
@@ -232,7 +246,8 @@ class AI(commands.Cog):
                         'user_id': ctx.author.id,
                         'username': ctx.author.name,
                         'discriminator': ctx.author.discriminator,
-                        'chat_log': to_database_ai
+                        'chat_log_ai': to_database_ai,
+                        'chat_log_user': to_database_user
                     }
                     self.bot.chat_history.insert_one(data)
                 return
@@ -267,7 +282,7 @@ class AI(commands.Cog):
         model="gpt-3.5-turbo"
         max_tokens=512
         stop_sequence=None
-        prompt="Respond as if you were telling someone a summary of the following text: "
+        prompt="Respond as if you were trying to give someone a summary of the following text: "
 
         messages = [{
             "role": "system",
