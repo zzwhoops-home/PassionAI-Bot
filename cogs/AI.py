@@ -168,6 +168,7 @@ class AI(commands.Cog):
                 response_json = json.loads(str((response)))
                 text = response_json['choices'][0]['message']['content'].strip()
                 # add to conversation history
+                summarized_text = await self.summarize(text)
                 messages.append({"role": "assistant", "content": text})
                 await placeholder.edit(content=f"{ctx.author.mention}, {text}")
             except Exception as e:
@@ -256,6 +257,36 @@ class AI(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def chat_embeddings_no_db(self, ctx, *question: str):
         await self.embeddings_model(ctx=ctx, question=question, store_db=False)
+
+    async def summarize(self, text):
+        model="gpt-3.5-turbo"
+        max_tokens=512
+        stop_sequence=None
+        prompt="Respond as if you were telling someone a summary of the following text: "
+
+        messages = [{
+            "role": "system",
+            "content": "Always attempt to summarize. If unable, do not respond with anything."
+        }, 
+        {
+            "role": "user",
+            "content": f"{prompt}{text}"
+        }]
+        
+        response = openai.ChatCompletion.create(model=model,
+                                                messages=messages,
+                                                temperature=0.0,
+                                                max_tokens=max_tokens,
+                                                top_p=1,
+                                                frequency_penalty=0,
+                                                presence_penalty=0,
+                                                stop=stop_sequence)
+
+        # convert to json, extract text with no new lines
+        response_json = json.loads(str((response)))
+        response_text = response_json['choices'][0]['message']['content'].strip()
+        print(response_text)
+        return response_text
 
     async def counter(self):
         filter = {}
