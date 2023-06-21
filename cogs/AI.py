@@ -98,8 +98,7 @@ class AI(commands.Cog):
     #     async def select_callback(self, select, interaction): # the function called when the user is done selecting options
     #         await interaction.response.send_message(f"{select.values[0]} yeah buddy")
 
-    @commands.command(name="chat", aliases=["ch"])
-    async def embeddings_model(self, ctx, *question: str):
+    async def embeddings_model(self, ctx, question, store_db=False):
         length = -1
         question = f"{' '.join(question)}"
 
@@ -186,24 +185,28 @@ class AI(commands.Cog):
                 chat_sessions[ctx.author.id] = False
 
                 cur_text = ""
-                to_database = [{
-                    "role": "system",
-                    "content": messages[0]['content']
-                },
-                {
-                    "role": "user",
-                    "content": messages[1]['content']
-                }]
+                # format for storing in database
+                to_database = []
+                if (store_db):
+                    to_database = [{
+                        "role": "system",
+                        "content": messages[0]['content']
+                    },
+                    {
+                        "role": "user",
+                        "content": messages[1]['content']
+                    }]
                 for m in range(len(messages) - 3):
                     # get after system message and embeddings message
                     block = messages[m + 3]
                     role = block['role']
                     content = block['content']
                     cur_text += f"{role.capitalize()}: {content}\n"
-                    to_database.append({
-                        "role": role,
-                        "content": content
-                    })
+                    if (store_db):
+                        to_database.append({
+                            "role": role,
+                            "content": content
+                        })
 
                 story = []
                 for i in range(math.ceil(len(cur_text) / msg_max_len)):
@@ -214,17 +217,18 @@ class AI(commands.Cog):
                     embed = nextcord.Embed(title=f"Your finished chat log (Part **{i + 1}** of **{len(story)}**):", description=f"{story[i]}")
                     await ctx.channel.send(f"{ctx.author.mention}", embed=embed)
 
-                # get current id
-                id = (await self.counter())['count']
-                data = {
-                    'id': id,
-                    'datetime': current_datetime,
-                    'user_id': ctx.author.id,
-                    'username': ctx.author.name,
-                    'discriminator': ctx.author.discriminator,
-                    'chat_log': to_database
-                }
-                self.bot.chat_history.insert_one(data)
+                if (store_db):
+                    # get current id
+                    id = (await self.counter())['count']
+                    data = {
+                        'id': id,
+                        'datetime': current_datetime,
+                        'user_id': ctx.author.id,
+                        'username': ctx.author.name,
+                        'discriminator': ctx.author.discriminator,
+                        'chat_log': to_database
+                    }
+                    self.bot.chat_history.insert_one(data)
                 return
 
             def check(m):
@@ -244,6 +248,15 @@ class AI(commands.Cog):
                 await end_chat()
                 return
 
+    @commands.command(name="chat", aliases=["ch"])
+    async def chat_embeddings(self, ctx, *question: str):
+        await self.embeddings_model(ctx=ctx, question=question, store_db=True)
+
+    @commands.command(name="chatnodb", aliases=["chndb"])
+    @commands.has_permissions(administrator=True)
+    async def chat_embeddings_no_db(self, ctx, *question: str):
+        await self.embeddings_model(ctx=ctx, question=question, store_db=False)
+
     async def counter(self):
         filter = {}
         data = {
@@ -255,7 +268,7 @@ class AI(commands.Cog):
         return data
 
     def create_context(self, question, df, max_len=1024, size="ada"):
-        # any embeddings under this threshold will not be placed into context
+        # any embeddings above this threshold will not be placed into context
         threshold = 0.2
 
         # get openai embeddings for the question
@@ -274,12 +287,13 @@ class AI(commands.Cog):
             # print(f"{row['distances']} {row['text']}")
             cur_len += row["token_ct"] + 4
 
-            if cur_len > max_len:
+            if ((cur_len > max_len) or (row["distances"] > threshold)):
                 break
 
             results.append(row["text"])
 
         # print embeddings used
+        print("\n\n###\n\n".join(results))
         return "\n\n###\n\n".join(results)
 
 
