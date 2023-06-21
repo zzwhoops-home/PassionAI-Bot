@@ -264,6 +264,7 @@ class AI(commands.Cog):
                     return
                 # add to conversation history
                 messages_ai.append({"role": "user", "content": text_explicit_passions})
+                messages_user.append({"role": "user", "content": text})
             except asyncio.TimeoutError:
                 await ctx.channel.send(f"{ctx.author.mention}, You took over 5 minutes to write a response.")
                 await end_chat()
@@ -282,7 +283,7 @@ class AI(commands.Cog):
         model="gpt-3.5-turbo"
         max_tokens=512
         stop_sequence=None
-        prompt="Respond as if you were trying to give someone a summary of the following text: "
+        prompt="Please summarize this in at most, two sentences: "
 
         messages = [{
             "role": "system",
@@ -320,7 +321,7 @@ class AI(commands.Cog):
 
     def create_context(self, question, df, max_len=1024, size="ada"):
         # any embeddings above this threshold will not be placed into context
-        threshold = 0.2
+        threshold = 0.23
 
         # get openai embeddings for the question
         q_embeddings = openai.Embedding.create(
