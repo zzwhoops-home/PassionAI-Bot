@@ -75,6 +75,29 @@ class AI(commands.Cog):
             await ctx.channel.send(f"{ctx.author.mention} Hey, this response may be cut off due to API limitations!")
             return
 
+    # class MyView(nextcord.ui.View):
+    #     @nextcord.ui.select(
+    #         placeholder = "Please provide your feedback!",
+    #         min_values = 1,
+    #         max_values = 1,
+    #         options = [
+    #             nextcord.SelectOption(
+    #                 label="Vanilla",
+    #                 description="Pick this if you like vanilla!"
+    #             ),
+    #             nextcord.SelectOption(
+    #                 label="Chocolate",
+    #                 description="Pick this if you like chocolate!"
+    #             ),
+    #             nextcord.SelectOption(
+    #                 label="Strawberry",
+    #                 description="Pick this if you like strawberry!"
+    #             )
+    #         ]
+    #     )
+    #     async def select_callback(self, select, interaction): # the function called when the user is done selecting options
+    #         await interaction.response.send_message(f"{select.values[0]} yeah buddy")
+
     @commands.command(name="chat", aliases=["ch"])
     async def embeddings_model(self, ctx, *question: str):
         length = -1
@@ -104,13 +127,13 @@ class AI(commands.Cog):
             "role": "user",
             "content": "Answer the question based on the information provided, and always attempt to synthesize the information into a unique personality. Always attempt to answer the question AND PRIORITIZE using the information given, however you may draw from prior knowledge as well. There are five tiers: low, medium-low, neutral, medium-high, and high, which represent how strongly a passion affects a person's personality. Any tier below 'neutral' should be treated as if the passion were the opposite. PRETEND THAT YOU ARE A HUMAN, AND NEVER SAY THAT YOU CANNOT GIVE AN OPINION OR VOICE A SUGGESTION."
         }]
-        max_len = 1024
+        max_len=1024
         model="gpt-3.5-turbo"
         max_tokens=512
         stop_sequence=None
-        explicit = "Answer based on the passions provided:"
+        explicit="Answer based on the passions provided:"
 
-        await ctx.channel.send(f"{ctx.author.mention}, you are now starting a chat instance. Please note that embeddings will only be generated for the question __**you included with the command.**__\nBe sure to list all of the passions you want to include after pq!chat.\n**To end the chat instance**, send **'end'** or the letter **'q'**.")
+        await ctx.channel.send(f"{ctx.author.mention}, you are now starting a chat instance. Please note that embeddings will only be generated for the question __**you included with the command.**__\nBe sure to list all of the passions you want to include after the mention. If you mention the bot again, more embeddings will be generated (WIP)\n**To end the chat instance**, send **'end'** or the letter **'q'**.")
         
         try:
             context = self.create_context(question, df, max_len, size="ada")
@@ -207,7 +230,7 @@ class AI(commands.Cog):
             def check(m):
                 return m.channel == ctx.channel and m.author.id != self.bot.user.id and not m.content.startswith("pq!") and m.author.id == ctx.author.id
             try:
-                message = await self.bot.wait_for('message', timeout=180.0, check=check)
+                message = await self.bot.wait_for('message', timeout=300.0, check=check)
                 # make answering based on passions explicitly stated
                 text = (message.content).strip()
                 text_explicit_passions = f"{explicit} {text}"
@@ -217,7 +240,7 @@ class AI(commands.Cog):
                 # add to conversation history
                 messages.append({"role": "user", "content": text_explicit_passions})
             except asyncio.TimeoutError:
-                await ctx.channel.send(f"{ctx.author.mention}, You took over 3 minutes to write a response.")
+                await ctx.channel.send(f"{ctx.author.mention}, You took over 5 minutes to write a response.")
                 await end_chat()
                 return
 
@@ -232,6 +255,9 @@ class AI(commands.Cog):
         return data
 
     def create_context(self, question, df, max_len=1024, size="ada"):
+        # any embeddings under this threshold will not be placed into context
+        threshold = 0.2
+
         # get openai embeddings for the question
         q_embeddings = openai.Embedding.create(
             input=question, engine='text-embedding-ada-002')['data'][0]['embedding']
@@ -245,6 +271,7 @@ class AI(commands.Cog):
         results = []
 
         for i, row in df.sort_values("distances", ascending=True).iterrows():
+            # print(f"{row['distances']} {row['text']}")
             cur_len += row["token_ct"] + 4
 
             if cur_len > max_len:
@@ -253,7 +280,6 @@ class AI(commands.Cog):
             results.append(row["text"])
 
         # print embeddings used
-        # print("\n\n###\n\n".join(results))
         return "\n\n###\n\n".join(results)
 
 
@@ -361,3 +387,6 @@ class AI(commands.Cog):
 
         return ""
 """
+
+def setup(bot):
+    bot.add_cog(AI(bot))

@@ -36,9 +36,24 @@ db = client['PassionAIDB']
 bot.chat_history = db['chat_history']
 bot.counter = db['counter']
 
-def setup(bot):
-    bot.add_cog(Listeners(bot))
-    bot.add_cog(AI(bot))
+bot.load_extension("cogs.Listeners")
+bot.load_extension("cogs.AI")
 
-setup(bot)
+@bot.command(name="reloadall", aliases=["ra"])
+async def reload_all(ctx):
+    bot.reload_extension("cogs.Listeners")
+    bot.reload_extension("cogs.AI")
+    await ctx.channel.send("Reloaded all modules!")
+
+@bot.command(name="reloadlisteners", aliases=["rl"])
+async def reload_listeners(ctx):
+    bot.reload_extension("cogs.Listeners")
+    await ctx.channel.send("Reloaded listeners module **only**.")
+
+@bot.command(name="reloadai", aliases=["rai"])
+async def reload_ai(ctx):
+    bot.reload_extension("cogs.AI")
+    await ctx.channel.send("Reloaded AI module **only**.")
+
+
 bot.run(TOKEN)
