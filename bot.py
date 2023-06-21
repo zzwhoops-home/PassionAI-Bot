@@ -40,20 +40,29 @@ bot.load_extension("cogs.Listeners")
 bot.load_extension("cogs.AI")
 
 @bot.command(name="reloadall", aliases=["ra"])
+@commands.has_permissions(administrator=True)
 async def reload_all(ctx):
     bot.reload_extension("cogs.Listeners")
     bot.reload_extension("cogs.AI")
     await ctx.channel.send("Reloaded all modules!")
 
 @bot.command(name="reloadlisteners", aliases=["rl"])
+@commands.has_permissions(administrator=True)
 async def reload_listeners(ctx):
     bot.reload_extension("cogs.Listeners")
     await ctx.channel.send("Reloaded listeners module **only**.")
 
 @bot.command(name="reloadai", aliases=["rai"])
+@commands.has_permissions(administrator=True)
 async def reload_ai(ctx):
     bot.reload_extension("cogs.AI")
     await ctx.channel.send("Reloaded AI module **only**.")
+
+# @bot.command(name="thing")
+# @commands.has_permissions(administrator=True)
+# async def thing(ctx):
+#     bot.chat_history.update_many({}, {"$rename": {"chat_log_ai" : "chat_log_user"}})
+
 
 
 bot.run(TOKEN)

@@ -118,7 +118,7 @@ class AI(commands.Cog):
         chat_sessions[ctx.author.id] = True
         
         context = ""
-        messages = [{
+        messages_ai = [{
             "role": "system",
             "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the user's passions."
         }, 
@@ -140,13 +140,16 @@ class AI(commands.Cog):
             print(e)
             await ctx.channel.send(f"Error: {e.message}. Please try again, this error may happen after a long period with no API activity.")
 
-        messages.extend([{
+        messages_ai.extend([{
                 "role": "assistant",
                 "content": context
                 }, {
                 "role": "user",
                 "content": f"{explicit} {question}"
                 }])
+        
+        # make a copy of messages to store in DB
+        messages_user = messages_ai[:]
 
         while True:
             placeholder = await ctx.channel.send("https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjU4ZW9tcHhpeWQ0dGZpYnprNTc4ODgzdm40ZzFwa256MWFyZGhsdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/uBt1p1imV3MExnFoQs/giphy.gif")
@@ -156,7 +159,7 @@ class AI(commands.Cog):
             # print(messages)
             try:
                 response = openai.ChatCompletion.create(model=model,
-                                                        messages=messages,
+                                                        messages=messages_ai,
                                                         temperature=temperature,
                                                         max_tokens=max_tokens,
                                                         top_p=1,
@@ -169,7 +172,8 @@ class AI(commands.Cog):
                 text = response_json['choices'][0]['message']['content'].strip()
                 # add to conversation history
                 summarized_text = await self.summarize(text)
-                messages.append({"role": "assistant", "content": text})
+                messages_ai.append({"role": "assistant", "content": summarized_text})
+                messages_user.append({"role": "assistant", "content": text})
                 await placeholder.edit(content=f"{ctx.author.mention}, {text}")
             except Exception as e:
                 print(e)
@@ -187,24 +191,25 @@ class AI(commands.Cog):
 
                 cur_text = ""
                 # format for storing in database
-                to_database = []
+                to_database_ai = []
+                to_database_user = []
                 if (store_db):
-                    to_database = [{
+                    to_database_ai = [{
                         "role": "system",
-                        "content": messages[0]['content']
+                        "content": messages_ai[0]['content']
                     },
                     {
                         "role": "user",
-                        "content": messages[1]['content']
+                        "content": messages_ai[1]['content']
                     }]
-                for m in range(len(messages) - 3):
+                for m in range(len(messages_ai) - 3):
                     # get after system message and embeddings message
-                    block = messages[m + 3]
+                    block = messages_ai[m + 3]
                     role = block['role']
                     content = block['content']
                     cur_text += f"{role.capitalize()}: {content}\n"
                     if (store_db):
-                        to_database.append({
+                        to_database_ai.append({
                             "role": role,
                             "content": content
                         })
@@ -227,7 +232,7 @@ class AI(commands.Cog):
                         'user_id': ctx.author.id,
                         'username': ctx.author.name,
                         'discriminator': ctx.author.discriminator,
-                        'chat_log': to_database
+                        'chat_log': to_database_ai
                     }
                     self.bot.chat_history.insert_one(data)
                 return
@@ -243,7 +248,7 @@ class AI(commands.Cog):
                     await end_chat()
                     return
                 # add to conversation history
-                messages.append({"role": "user", "content": text_explicit_passions})
+                messages_ai.append({"role": "user", "content": text_explicit_passions})
             except asyncio.TimeoutError:
                 await ctx.channel.send(f"{ctx.author.mention}, You took over 5 minutes to write a response.")
                 await end_chat()
