@@ -158,32 +158,34 @@ class AI(commands.Cog):
             # print(f"Temperature: {temperature}\n")
             # print(messages)
             try:
-                response = openai.ChatCompletion.create(model=model,
-                                                        messages=messages_ai,
-                                                        temperature=temperature,
-                                                        max_tokens=max_tokens,
-                                                        top_p=1,
-                                                        frequency_penalty=0,
-                                                        presence_penalty=0,
-                                                        stop=stop_sequence)
+                response = None
+                async with ctx.channel.typing():
+                    response = openai.ChatCompletion.create(model=model,
+                                                            messages=messages_ai,
+                                                            temperature=temperature,
+                                                            max_tokens=max_tokens,
+                                                            top_p=1,
+                                                            frequency_penalty=0,
+                                                            presence_penalty=0,
+                                                            stop=stop_sequence)
 
-                # convert to json, extract text with no new lines
-                response_json = json.loads(str((response)))
-                text = response_json['choices'][0]['message']['content'].strip()
-                # for DEBUG ONLY: TOKEN USAGE
-                tokens_used = response_json['usage']['total_tokens']
-                await ctx.channel.send(f"**TOKEN USAGE**: {tokens_used}/4096")
-                # add to conversation history
-                summarized_text = await self.summarize(text)
-                messages_ai.append({"role": "assistant", "content": summarized_text})
-                messages_user.append({"role": "assistant", "content": text})
-                if (len(text) > 1950):
-                    text_one = text[0:1950]
-                    text_two = text[1950:]
-                    await placeholder.edit(content=f"{ctx.author.mention}, {text_one}")
-                    await ctx.channel.send(f"{ctx.author.mention}, {text_two}")
-                else:
-                    await placeholder.edit(content=f"{ctx.author.mention}, {text}")
+                    # convert to json, extract text with no new lines
+                    response_json = json.loads(str((response)))
+                    text = response_json['choices'][0]['message']['content'].strip()
+                    # for DEBUG ONLY: TOKEN USAGE
+                    tokens_used = response_json['usage']['total_tokens']
+                    await ctx.channel.send(f"**TOKEN USAGE**: {tokens_used}/4096")
+                    # add to conversation history
+                    summarized_text = await self.summarize(text)
+                    messages_ai.append({"role": "assistant", "content": summarized_text})
+                    messages_user.append({"role": "assistant", "content": text})
+                    if (len(text) > 1950):
+                        text_one = text[0:1950]
+                        text_two = text[1950:]
+                        await placeholder.edit(content=f"{ctx.author.mention}, {text_one}")
+                        await ctx.channel.send(f"{ctx.author.mention}, {text_two}")
+                    else:
+                        await placeholder.edit(content=f"{ctx.author.mention}, {text}")
             except Exception as e:
                 print(e)
                 await ctx.channel.send(f"{ctx.author.mention} An error occurred. Please let Zach know.\nEnding chat...")
