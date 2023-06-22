@@ -58,6 +58,27 @@ async def reload_ai(ctx):
     bot.reload_extension("cogs.AI")
     await ctx.channel.send("Reloaded AI module **only**.")
 
+@bot.command(name="clear")
+@commands.has_permissions(administrator=True)
+async def clear(ctx, num=1):
+    try:
+        num = int(num)
+    except Exception as e:
+        await ctx.channel.send("Please enter a valid number.")
+        return
+    
+    if (num > 100):
+        await ctx.channel.send("Please enter a number between 1 and 100.")
+        return
+
+    # clear # messages + user message
+    await ctx.channel.purge(limit=num+1)
+    num_cleared = await ctx.channel.send(f"I have cleared **{num}** messages!")
+    await asyncio.sleep(3)
+    await num_cleared.delete()
+
+
+
 # @bot.command(name="thing")
 # @commands.has_permissions(administrator=True)
 # async def thing(ctx):
