@@ -99,21 +99,26 @@ class AI(commands.Cog):
     #         await interaction.response.send_message(f"{select.values[0]} yeah buddy")
 
     async def embeddings_model(self, ctx, question, store_db=False):
-        length = -1
-        question = f"{' '.join(question)}"
+        if (ctx.channel.category.id != 1074104279473852546):
+            await ctx.channel.send("Please send your messages under any of the AI channels only.")
+            return
 
-        for word in question:
-            length += len(word) + 1
-        if (length == -1):
-            await ctx.channel.send(f"{ctx.author.mention}, please enter something you want to ask me.")
-            return
-        if (length > 512):
-            await ctx.channel.send(f"{ctx.author.mention}, hey, try to keep your requests under 512 characters.")
-            return
         if (ctx.author.id in chat_sessions):
             if (chat_sessions[ctx.author.id]):
                 await ctx.channel.send(f"{ctx.author.mention}, you are already in an active chat instance. Please type **'end'** or **'q'** to end your current chat instance.")
                 return
+
+        length = -1
+        question = f"{' '.join(question)}"
+
+        for word in question:
+            length += len(word)
+        if (length == -1):
+            await ctx.channel.send(f"{ctx.author.mention}, please enter something you want to ask me.")
+            return
+        if (length > 1500):
+            await ctx.channel.send(f"{ctx.author.mention}, hey, try to keep your requests under 1500 characters.")
+            return
 
         chat_sessions[ctx.author.id] = True
         
@@ -284,11 +289,13 @@ class AI(commands.Cog):
     @commands.command(name="chat", aliases=["ch"])
     async def chat_embeddings(self, ctx, *question: str):
         await self.embeddings_model(ctx=ctx, question=question, store_db=True)
+        return
 
     @commands.command(name="chatnodb", aliases=["chndb"])
     @commands.has_permissions(administrator=True)
     async def chat_embeddings_no_db(self, ctx, *question: str):
         await self.embeddings_model(ctx=ctx, question=question, store_db=False)
+        return
 
     async def summarize(self, text):
         model="gpt-3.5-turbo"
