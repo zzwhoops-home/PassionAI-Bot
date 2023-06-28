@@ -19,7 +19,7 @@ class Listeners(commands.Cog):
                 for mention in mentions:
                     msg = msg.replace(f"<@{mention.id}>", "")
 
-                await context.invoke(self.bot.get_command('chat'), f"{msg}")
+                await context.invoke(self.bot.get_command('chat'), msg)
 
 
     @commands.Cog.listener()
