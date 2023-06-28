@@ -30,7 +30,6 @@ bot = PQBot(True, command_prefix=prefix, intents=intents)
 
 # create connection to database
 client = pymongo.MongoClient(f"mongodb+srv://{USER}:{PWD}@passionaibot.4dwr2me.mongodb.net/?retryWrites=true&w=majority")
-# change main to actual database name later
 db = client['PassionAIDB']
 
 bot.chat_history = db['chat_history']

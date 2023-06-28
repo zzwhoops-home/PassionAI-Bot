@@ -125,11 +125,7 @@ class AI(commands.Cog):
         context = ""
         messages_ai = [{
             "role": "system",
-            "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the user's passions."
-        }, 
-        {
-            "role": "user",
-            "content": "Answer the question based on the information provided, and always attempt to synthesize the information into a unique personality. Always attempt to answer the question AND PRIORITIZE using the information given, however you may draw from prior knowledge as well. There are five tiers: low, medium-low, neutral, medium-high, and high, which represent how strongly a passion affects a person's personality. Any tier below 'neutral' should be treated as if the passion were the opposite. PRETEND THAT YOU ARE A HUMAN, AND NEVER SAY THAT YOU CANNOT GIVE AN OPINION OR VOICE A SUGGESTION."
+            "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the provided passions and the information associated with them."
         }]
         max_len=1024
         model="gpt-3.5-turbo"
@@ -145,12 +141,18 @@ class AI(commands.Cog):
             print(e)
             await ctx.channel.send(f"Error: {e.message}. Please try again, this error may happen after a long period with no API activity.")
 
-        messages_ai.extend([{
-                "role": "assistant",
-                "content": context
-                }, {
-                "role": "user",
-                "content": f"{explicit} {question}"
+        messages_ai.extend([
+                {
+                    "role": "user",
+                    "content": "Answer the question based on the context provided, and always attempt to synthesize the context. Always attempt to answer the question AND PRIORITIZE using the context given. The context that is provided includes 'passions', which you can think of as desires of human nature, and their associated descriptions. There are five tiers: low, medium-low, neutral, medium-high, and high, which represent how strongly a passion affects a person's personality. If asked to provide passions, you must answer explicitly based on the passions provided in the context. Any tier below 'neutral' should be treated as if the passion were the opposite. PRETEND THAT YOU ARE A HUMAN, AND NEVER SAY THAT YOU CANNOT GIVE AN OPINION OR VOICE A SUGGESTION."
+                },
+                {
+                    "role": "user",
+                    "content": f"Context:\n\n{context}"
+                }, 
+                {
+                    "role": "user",
+                    "content": f"{explicit} {question}"
                 }])
         
         # make a copy of messages to store in DB
@@ -184,6 +186,7 @@ class AI(commands.Cog):
                     summarized_text = await self.summarize(text)
                     messages_ai.append({"role": "assistant", "content": summarized_text})
                     messages_user.append({"role": "assistant", "content": text})
+                    # cheap fix for doubling character limit (splits into two messages if exceeding limit)
                     if (len(text) > 1950):
                         text_one = text[0:1950]
                         text_two = text[1950:]
@@ -196,7 +199,27 @@ class AI(commands.Cog):
                 await ctx.channel.send(f"{ctx.author.mention} An error occurred. Please let Zach know.\nEnding chat...")
                 await end_chat()
                 return
+            
+            def check(m):
+                return m.channel == ctx.channel and m.author.id != self.bot.user.id and not m.content.startswith("pq!") and m.author.id == ctx.author.id
+            try:
+                message = await self.bot.wait_for('message', timeout=300.0, check=check)
+                # make answering based on passions explicitly stated
+                text = (message.content).strip()
+                text_explicit_passions = f"{explicit} {text}"
 
+                # end chat if user sends "q" or "end"
+                if (text.lower() == "q" or text.lower() == "end"):
+                    await end_chat()
+                    return
+                # add to conversation history
+                messages_ai.append({"role": "user", "content": text_explicit_passions})
+                messages_user.append({"role": "user", "content": text})
+            except asyncio.TimeoutError:
+                await ctx.channel.send(f"{ctx.author.mention}, You took over 5 minutes to write a response.")
+                await end_chat()
+                return
+            
             async def end_chat():
                 msg_max_len = 4000
                 # Get the current date and time
@@ -245,6 +268,7 @@ class AI(commands.Cog):
                         })
 
                 story = []
+                # ensure each embed doesn't exceed character limit
                 for i in range(math.ceil(len(cur_text) / msg_max_len)):
                     story.append(cur_text[0:msg_max_len])
                     cur_text = cur_text[msg_max_len:]
@@ -268,23 +292,6 @@ class AI(commands.Cog):
                     self.bot.chat_history.insert_one(data)
                 return
 
-            def check(m):
-                return m.channel == ctx.channel and m.author.id != self.bot.user.id and not m.content.startswith("pq!") and m.author.id == ctx.author.id
-            try:
-                message = await self.bot.wait_for('message', timeout=300.0, check=check)
-                # make answering based on passions explicitly stated
-                text = (message.content).strip()
-                text_explicit_passions = f"{explicit} {text}"
-                if (text.lower() == "q" or text.lower() == "end"):
-                    await end_chat()
-                    return
-                # add to conversation history
-                messages_ai.append({"role": "user", "content": text_explicit_passions})
-                messages_user.append({"role": "user", "content": text})
-            except asyncio.TimeoutError:
-                await ctx.channel.send(f"{ctx.author.mention}, You took over 5 minutes to write a response.")
-                await end_chat()
-                return
 
     @commands.command(name="chat", aliases=["ch"])
     async def chat_embeddings(self, ctx, *question: str):
@@ -353,8 +360,11 @@ class AI(commands.Cog):
         cur_len = 0
         results = []
 
+        
+
         for i, row in df.sort_values("distances", ascending=True).iterrows():
             # print(f"{row['distances']} {row['text']}")
+            # print(f"{row['distances']}")
             cur_len += row["token_ct"] + 4
 
             if ((cur_len > max_len) or (row["distances"] > threshold)):
@@ -362,8 +372,10 @@ class AI(commands.Cog):
 
             results.append(row["text"])
 
+        # for i, row in df.sort_values("distances", ascending=True).iterrows():
+        #     print(f"{row['distances']}")
         # print embeddings used
-        print("\n\n###\n\n".join(results))
+        # print("\n\n###\n\n".join(results))
         return "\n\n###\n\n".join(results)
 
 
