@@ -117,6 +117,3 @@ def create_context(question, df, max_len=1024, size="ada"):
     # print embeddings used
     # print("\n\n###\n\n".join(results))
     return "\n\n###\n\n".join(results)
-
-
-print(embeddings_model("What is the difference between a high Idealism person and a high Acceptance person?"))
