@@ -12,3 +12,4 @@ pip-selfcheck.json
 testing.py
 test.jsonl
 AICloud_wDB.py
+cloud_function_test.py
