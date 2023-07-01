@@ -1,5 +1,3 @@
-import functions_framework
-
 import math
 import json
 import os
@@ -15,37 +13,13 @@ import pandas as pd
 import numpy as np
 from openai.embeddings_utils import distances_from_embeddings
 
+load_dotenv()
+openai.api_key = os.getenv('OPENAI_KEY')
+
 # read numpy converted embeddings dataframe
 df = pd.read_csv("processed/embeddings.csv", index_col=0)
 # Convert the "embeddings" column to NumPy arrays
 df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
-
-def get_openai_key():
-    return os.environ.get("OPENAI_KEY", "Specified environment variable is not set.")
-
-openai.api_key = get_openai_key()
-
-@functions_framework.http
-def passion_ai_cloud(request):
-    """HTTP Cloud Function.
-    Args:
-        request (flask.Request): The request object.
-        <https://flask.palletsprojects.com/en/1.1.x/api/#incoming-request-data>
-    Returns:
-        The response text, or any set of values that can be turned into a
-        Response object using `make_response`
-        <https://flask.palletsprojects.com/en/1.1.x/api/#flask.make_response>.
-    """
-    request_json = request.get_json(silent=True)
-    request_args = request.args
-
-    if request_json and 'question' in request_json:
-        return embeddings_model(request_json['question'])
-    elif request_args and 'question' in request_args:
-        return 'Please submit JSON data. Do not use a query string in the URL.'
-    else:
-        question = 'Your question was invalid or blank. Please enter another response and try again.'
-    return 'Hello {}!'.format(question)
 
 def embeddings_model(question):
     length = -1
@@ -143,3 +117,4 @@ def create_context(question, df, max_len=1024, size="ada"):
     # print("\n\n###\n\n".join(results))
     return "\n\n###\n\n".join(results)
 
+print(embeddings_model("What makes a high Vengeance person unique?"))

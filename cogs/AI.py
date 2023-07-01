@@ -21,11 +21,10 @@ import pymongo
 
 openai.api_key = os.getenv('OPENAI_KEY')
 
-# convert to numpy arrays
+# read numpy converted embeddings dataframe
 df = pd.read_csv("processed/embeddings.csv", index_col=0)
+# Convert the "embeddings" column to NumPy arrays
 df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
-
-df.head()
 
 # dictionary to ensure users are not already in a chat session
 chat_sessions = {}
