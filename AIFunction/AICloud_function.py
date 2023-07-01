@@ -19,8 +19,6 @@ from openai.embeddings_utils import distances_from_embeddings
 df = pd.read_csv("embeddings.csv", index_col=0)
 df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
-df.head()
-
 def get_openai_key():
     return os.environ.get("OPENAI_KEY", "Specified environment variable is not set.")
 
