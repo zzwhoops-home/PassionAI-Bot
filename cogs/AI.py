@@ -126,7 +126,7 @@ class AI(commands.Cog):
             "role": "system",
             "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the provided passions and the information associated with them."
         }]
-        max_len=1024
+        max_len=2048
         model="gpt-3.5-turbo"
         max_tokens=512
         stop_sequence=None
@@ -158,67 +158,6 @@ class AI(commands.Cog):
         messages_user = messages_ai[:]
 
         while True:
-            placeholder = await ctx.channel.send("https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjU4ZW9tcHhpeWQ0dGZpYnprNTc4ODgzdm40ZzFwa256MWFyZGhsdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/uBt1p1imV3MExnFoQs/giphy.gif")
-            temperature = 1.0
-
-            # print(f"Temperature: {temperature}\n")
-            # print(messages)
-            try:
-                response = None
-                async with ctx.channel.typing():
-                    response = openai.ChatCompletion.create(model=model,
-                                                            messages=messages_ai,
-                                                            temperature=temperature,
-                                                            max_tokens=max_tokens,
-                                                            top_p=1,
-                                                            frequency_penalty=0,
-                                                            presence_penalty=0,
-                                                            stop=stop_sequence)
-
-                    # convert to json, extract text with no new lines
-                    response_json = json.loads(str((response)))
-                    text = response_json['choices'][0]['message']['content'].strip()
-                    # for DEBUG ONLY: TOKEN USAGE
-                    tokens_used = response_json['usage']['total_tokens']
-                    await ctx.channel.send(f"**TOKEN USAGE**: {tokens_used}/4096")
-                    # add to conversation history
-                    summarized_text = await self.summarize(text)
-                    messages_ai.append({"role": "assistant", "content": summarized_text})
-                    messages_user.append({"role": "assistant", "content": text})
-                    # cheap fix for doubling character limit (splits into two messages if exceeding limit)
-                    if (len(text) > 1950):
-                        text_one = text[0:1950]
-                        text_two = text[1950:]
-                        await placeholder.edit(content=f"{ctx.author.mention}, {text_one}")
-                        await ctx.channel.send(f"{ctx.author.mention}, {text_two}")
-                    else:
-                        await placeholder.edit(content=f"{ctx.author.mention}, {text}")
-            except Exception as e:
-                print(e)
-                await ctx.channel.send(f"{ctx.author.mention} An error occurred. Please let Zach know.\nEnding chat...")
-                await end_chat()
-                return
-            
-            def check(m):
-                return m.channel == ctx.channel and m.author.id != self.bot.user.id and not m.content.startswith("pq!") and m.author.id == ctx.author.id
-            try:
-                message = await self.bot.wait_for('message', timeout=300.0, check=check)
-                # make answering based on passions explicitly stated
-                text = (message.content).strip()
-                text_explicit_passions = f"{explicit} {text}"
-
-                # end chat if user sends "q" or "end"
-                if (text.lower() == "q" or text.lower() == "end"):
-                    await end_chat()
-                    return
-                # add to conversation history
-                messages_ai.append({"role": "user", "content": text_explicit_passions})
-                messages_user.append({"role": "user", "content": text})
-            except asyncio.TimeoutError:
-                await ctx.channel.send(f"{ctx.author.mention}, You took over 5 minutes to write a response.")
-                await end_chat()
-                return
-            
             async def end_chat():
                 msg_max_len = 4000
                 # Get the current date and time
@@ -290,7 +229,68 @@ class AI(commands.Cog):
                     }
                     self.bot.chat_history.insert_one(data)
                 return
+            
+            placeholder = await ctx.channel.send("https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjU4ZW9tcHhpeWQ0dGZpYnprNTc4ODgzdm40ZzFwa256MWFyZGhsdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/uBt1p1imV3MExnFoQs/giphy.gif")
+            temperature = 1.0
 
+            # print(f"Temperature: {temperature}\n")
+            # print(messages)
+
+            try:
+                response = None
+                async with ctx.channel.typing():
+                    response = openai.ChatCompletion.create(model=model,
+                                                            messages=messages_ai,
+                                                            temperature=temperature,
+                                                            max_tokens=max_tokens,
+                                                            top_p=1,
+                                                            frequency_penalty=0,
+                                                            presence_penalty=0,
+                                                            stop=stop_sequence)
+
+                    # convert to json, extract text with no new lines
+                    response_json = json.loads(str((response)))
+                    text = response_json['choices'][0]['message']['content'].strip()
+                    # for DEBUG ONLY: TOKEN USAGE
+                    tokens_used = response_json['usage']['total_tokens']
+                    await ctx.channel.send(f"**TOKEN USAGE**: {tokens_used}/4096")
+                    # add to conversation history
+                    summarized_text = await self.summarize(text)
+                    messages_ai.append({"role": "assistant", "content": summarized_text})
+                    messages_user.append({"role": "assistant", "content": text})
+                    # cheap fix for doubling character limit (splits into two messages if exceeding limit)
+                    if (len(text) > 1950):
+                        text_one = text[0:1950]
+                        text_two = text[1950:]
+                        await placeholder.edit(content=f"{ctx.author.mention}, {text_one}")
+                        await ctx.channel.send(f"{ctx.author.mention}, {text_two}")
+                    else:
+                        await placeholder.edit(content=f"{ctx.author.mention}, {text}")
+            except Exception as e:
+                print(e)
+                await ctx.channel.send(f"{ctx.author.mention} An error occurred. Please let Zach know.\nEnding chat...")
+                await end_chat()
+                return
+            
+            def check(m):
+                return m.channel == ctx.channel and m.author.id != self.bot.user.id and not m.content.startswith("pq!") and m.author.id == ctx.author.id
+            try:
+                message = await self.bot.wait_for('message', timeout=300.0, check=check)
+                # make answering based on passions explicitly stated
+                text = (message.content).strip()
+                text_explicit_passions = f"{explicit} {text}"
+
+                # end chat if user sends "q" or "end"
+                if (text.lower() == "q" or text.lower() == "end"):
+                    await end_chat()
+                    return
+                # add to conversation history
+                messages_ai.append({"role": "user", "content": text_explicit_passions})
+                messages_user.append({"role": "user", "content": text})
+            except asyncio.TimeoutError:
+                await ctx.channel.send(f"{ctx.author.mention}, You took over 5 minutes to write a response.")
+                await end_chat()
+                return
 
     @commands.command(name="chat", aliases=["ch"])
     async def chat_embeddings(self, ctx, *question: str):
@@ -343,7 +343,7 @@ class AI(commands.Cog):
         data = self.bot.counter.find_one_and_update(filter=filter, update=data, return_document=pymongo.ReturnDocument.BEFORE)
         return data
 
-    def create_context(self, question, df, max_len=1024, size="ada"):
+    def create_context(self, question, df, max_len=2048, size="ada"):
         # any embeddings above this threshold will not be placed into context
         threshold = 0.23
 
@@ -374,7 +374,7 @@ class AI(commands.Cog):
         # for i, row in df.sort_values("distances", ascending=True).iterrows():
         #     print(f"{row['distances']}")
         # print embeddings used
-        # print("\n\n###\n\n".join(results))
+        print("\n\n###\n\n".join(results))
         return "\n\n###\n\n".join(results)
 
 

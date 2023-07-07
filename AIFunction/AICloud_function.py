@@ -59,7 +59,7 @@ def embeddings_model(question):
         "role": "system",
         "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the provided passions and the information associated with them."
     }]
-    max_len=1024
+    max_len=2048
     model="gpt-3.5-turbo"
     max_tokens=512
     stop_sequence=None
@@ -109,7 +109,7 @@ def embeddings_model(question):
     except Exception as e:
         return(e)
 
-def create_context(question, df, max_len=1024, size="ada"):
+def create_context(question, df, max_len=2048, size="ada"):
     # any embeddings above this threshold will not be placed into context
     threshold = 0.23
 
