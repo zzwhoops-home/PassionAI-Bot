@@ -16,11 +16,12 @@ import numpy as np
 from openai.embeddings_utils import distances_from_embeddings
 
 # read numpy converted embeddings dataframe
-df = pd.read_csv("processed/embeddings.csv", index_col=0)
+df = pd.read_csv("AIFunction/embeddings.csv", index_col=0)
 # Convert the "embeddings" column to NumPy arrays
 df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
 def get_openai_key():
+    # remember to add api token here if testing in local environment
     return os.environ.get("OPENAI_KEY", "Specified environment variable is not set.")
 
 openai.api_key = get_openai_key()
@@ -40,18 +41,23 @@ def passion_ai_cloud(request):
     request_args = request.args
 
     if request_json and 'question' in request_json:
-        return embeddings_model(request_json['question'])
+        # check for custom parameters
+        question = request_json['question']
+        if 'temperature' in request_json:
+            temperature = request_json['temperature']
+            return embeddings_model(question=question, temperature=temperature)
+        else:
+            return embeddings_model(question=question)
     elif request_args and 'question' in request_args:
         return 'Please submit JSON data. Do not use a query string in the URL.'
     else:
         question = 'Your question was invalid or blank. Please enter another response and try again.'
     return 'Hello {}!'.format(question)
 
-def embeddings_model(question):
+def embeddings_model(question, temperature=1.0):
     length = -1
-    question = f"{' '.join(question)}"
-
-    for word in question:
+    q_word_list = question.split(" ")
+    for word in q_word_list:
         length += len(word)
     
     context = ""
@@ -67,6 +73,7 @@ def embeddings_model(question):
 
     try:
         context = create_context(question, df, max_len, size="ada")
+        # print(context)
     except Exception as e:
         return(e)
 
@@ -84,7 +91,6 @@ def embeddings_model(question):
                 "content": f"{explicit} {question}"
             }])
 
-    temperature = 1.0
 
     # print(f"Temperature: {temperature}\n")
     # print(messages)
@@ -125,11 +131,7 @@ def create_context(question, df, max_len=2048, size="ada"):
     cur_len = 0
     results = []
 
-    
-
     for i, row in df.sort_values("distances", ascending=True).iterrows():
-        # print(f"{row['distances']} {row['text']}")
-        # print(f"{row['distances']}")
         cur_len += row["token_ct"] + 4
 
         if ((cur_len > max_len) or (row["distances"] > threshold)):
@@ -137,9 +139,10 @@ def create_context(question, df, max_len=2048, size="ada"):
 
         results.append(row["text"])
 
-    # for i, row in df.sort_values("distances", ascending=True).iterrows():
-    #     print(f"{row['distances']}")
     # print embeddings used
     # print("\n\n###\n\n".join(results))
     return "\n\n###\n\n".join(results)
+
+# if __name__ == "__main__":
+#     print(embeddings_model("In a paragraph, tell me what makes a person with high Idealism, Forgiveness, Order, Expedience, and Soft Power passions unique. Please try to combine all the passions into one statement, and do not list each passion individually."))
 

@@ -13,3 +13,5 @@ testing.py
 test.jsonl
 AICloud_wDB.py
 cloud_function_test.py
+AICloud_old.py
+AiFunction/embeddings.csv
