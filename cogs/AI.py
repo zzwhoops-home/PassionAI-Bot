@@ -113,7 +113,7 @@ class AI(commands.Cog):
         for word in question:
             length += len(word)
         if (length == -1):
-            await ctx.channel.send(f"{ctx.author.mention}, please enter something you want to ask me.")
+            await ctx.channel.send(f"{ctx.author.mention}, please ping me with the first question you want to ask.\nI.e. '@PQBot what makes a high vengeance, acceptance, power person unique?'")
             return
         if (length > 1500):
             await ctx.channel.send(f"{ctx.author.mention}, hey, try to keep your requests under 1500 characters.")
@@ -126,11 +126,12 @@ class AI(commands.Cog):
             "role": "system",
             "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the provided passions and the information associated with them."
         }]
-        max_len=2048
+        max_len=1500
         model="gpt-3.5-turbo"
         max_tokens=512
         stop_sequence=None
-        explicit="Answer based on the passions provided:"
+        # try several different 'explicit' messages, like 'Answer based on the passions provided:', 'Based on my passions, ', etc...
+        explicit="Based on these passions, "
 
         await ctx.channel.send(f"{ctx.author.mention}, you are now starting a chat instance. Please note that embeddings will only be generated for the question __**you included with the command.**__\nBe sure to list all of the passions you want to include after the mention. If you mention the bot again, more embeddings will be generated (WIP)\n**To end the chat instance**, send **'end'** or the letter **'q'**.")
         
@@ -275,7 +276,7 @@ class AI(commands.Cog):
             def check(m):
                 return m.channel == ctx.channel and m.author.id != self.bot.user.id and not m.content.startswith("pq!") and m.author.id == ctx.author.id
             try:
-                message = await self.bot.wait_for('message', timeout=300.0, check=check)
+                message = await self.bot.wait_for('message', timeout=600.0, check=check)
                 # make answering based on passions explicitly stated
                 text = (message.content).strip()
                 text_explicit_passions = f"{explicit} {text}"
@@ -288,7 +289,7 @@ class AI(commands.Cog):
                 messages_ai.append({"role": "user", "content": text_explicit_passions})
                 messages_user.append({"role": "user", "content": text})
             except asyncio.TimeoutError:
-                await ctx.channel.send(f"{ctx.author.mention}, You took over 5 minutes to write a response.")
+                await ctx.channel.send(f"{ctx.author.mention}, You took over 10 minutes to write a response.")
                 await end_chat()
                 return
 
@@ -343,7 +344,7 @@ class AI(commands.Cog):
         data = self.bot.counter.find_one_and_update(filter=filter, update=data, return_document=pymongo.ReturnDocument.BEFORE)
         return data
 
-    def create_context(self, question, df, max_len=2048, size="ada"):
+    def create_context(self, question, df, max_len=1500, size="ada"):
         # any embeddings above this threshold will not be placed into context
         threshold = 0.23
 

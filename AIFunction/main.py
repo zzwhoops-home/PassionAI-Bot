@@ -16,7 +16,8 @@ import numpy as np
 from openai.embeddings_utils import distances_from_embeddings
 
 # read numpy converted embeddings dataframe
-df = pd.read_csv("AIFunction/embeddings.csv", index_col=0)
+# df = pd.read_csv("AIFunction/embeddings.csv", index_col=0)
+df = pd.read_csv("embeddings.csv", index_col=0)
 # Convert the "embeddings" column to NumPy arrays
 df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
@@ -45,16 +46,24 @@ def passion_ai_cloud(request):
         question = request_json['question']
         if 'temperature' in request_json:
             temperature = request_json['temperature']
-            return embeddings_model(question=question, temperature=temperature)
+            if 'max_tokens' in request_json:
+                max_tokens = request_json['max_tokens']
+                return embeddings_model(question=question, temperature=temperature, max_tokens=max_tokens)
+            else:
+                return embeddings_model(question=question, temperature=temperature)
+        elif 'max_tokens' in request_json:
+            max_tokens = request_json['max_tokens']
+            return embeddings_model(question=question, temperature=1.0, max_tokens=max_tokens)
         else:
             return embeddings_model(question=question)
     elif request_args and 'question' in request_args:
-        return 'Please submit JSON data. Do not use a query string in the URL.'
+        response = 'Please submit JSON data. Do not use a query string in the URL.'
+        return response
     else:
-        question = 'Your question was invalid or blank. Please enter another response and try again.'
-    return 'Hello {}!'.format(question)
+        response = 'Your JSON was invalid or blank. Please enter another response and try again.'
+        return response
 
-def embeddings_model(question, temperature=1.0):
+def embeddings_model(question, temperature=1.0, max_tokens=512):
     length = -1
     q_word_list = question.split(" ")
     for word in q_word_list:
@@ -67,7 +76,7 @@ def embeddings_model(question, temperature=1.0):
     }]
     max_len=2048
     model="gpt-3.5-turbo"
-    max_tokens=512
+    max_tokens=max_tokens
     stop_sequence=None
     explicit="Answer based on the passions provided:"
 
