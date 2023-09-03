@@ -83,6 +83,4 @@ async def clear(ctx, num=1):
 # async def thing(ctx):
 #     bot.chat_history.update_many({}, {"$rename": {"chat_log_ai" : "chat_log_user"}})
 
-
-
 bot.run(TOKEN)
