@@ -331,7 +331,9 @@ class AI(commands.Cog):
         # convert to json, extract text with no new lines
         response_json = json.loads(str((response)))
         response_text = response_json['choices'][0]['message']['content'].strip()
-        print(response_text)
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        print(f"[{dt_string}]: {response_text}")
         return response_text
 
     async def counter(self):
