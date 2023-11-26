@@ -28,6 +28,7 @@ df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
 # dictionary to ensure users are not already in a chat session
 chat_sessions = {}
+force_exits = []
 
 class AI(commands.Cog):
     def __init__(self, bot):
@@ -35,6 +36,17 @@ class AI(commands.Cog):
         # load API key from env
         load_dotenv()
         openai.api_key = os.getenv('OPENAI_KEY')
+
+    @commands.command(name="forceexit", aliases=["fe", "fexit"])
+    async def clear_sessions(self, ctx):
+        if (ctx.author.id in chat_sessions):
+            if (chat_sessions[ctx.author.id]):
+                chat_sessions[ctx.author.id] = False
+                await ctx.channel.send(f"{ctx.author.mention} Force exited your chat session.")
+                force_exits.append(ctx.author.id)
+                return
+        
+        await ctx.channel.send(f"{ctx.author.mention}, you are not in an active chat instance.")
 
     @commands.command(name="chatbase", aliases=["cbm", "chb"])
     async def chat_base_model(self, ctx, *message: str):
@@ -104,8 +116,12 @@ class AI(commands.Cog):
 
         if (ctx.author.id in chat_sessions):
             if (chat_sessions[ctx.author.id]):
-                await ctx.channel.send(f"{ctx.author.mention}, you are already in an active chat instance. Please type **'end'** or **'q'** to end your current chat instance.")
+                await ctx.channel.send(f"{ctx.author.mention}, you are already in an active chat instance. Please type **'end'** or **'q'** to end your current chat instance.\nAlternatively, type {self.bot.command_prefix}forceexit if you are stuck in an instance.")
                 return
+            
+        if (ctx.author.id in force_exits):
+            force_exits.remove(ctx.author.id)
+            await ctx.channel.send(f"{ctx.author.mention}, previous force exit detected. Restarting session...")
 
         length = -1
         question = f"{' '.join(question)}"
@@ -157,80 +173,84 @@ class AI(commands.Cog):
         
         # make a copy of messages to store in DB
         messages_user = messages_ai[:]
+        async def end_chat():
+            msg_max_len = 4000
+            # Get the current date and time
+            current_datetime = datetime.now()
 
+            await ctx.channel.send(f"{ctx.author.mention}, ending chat instance...")
+            chat_sessions[ctx.author.id] = False
+
+            cur_text = ""
+            # format for storing in database
+            to_database_ai = []
+            to_database_user = []
+            if (store_db):
+                to_database_ai = [{
+                    "role": "system",
+                    "content": messages_ai[0]['content']
+                },
+                {
+                    "role": "user",
+                    "content": messages_ai[1]['content']
+                }]
+                # duplicate array
+                to_database_user = to_database_ai[:]
+
+            for m in range(len(messages_ai) - 3):
+                # get after system message and embeddings message
+                block = messages_ai[m + 3]
+                role = block['role']
+                content = block['content']
+                if (store_db):
+                    to_database_ai.append({
+                        "role": role,
+                        "content": content
+                    })
+
+            for m in range(len(messages_user) - 3):
+                # get after system message and embeddings message
+                block = messages_user[m + 3]
+                role = block['role']
+                content = block['content']
+                cur_text += f"{role.capitalize()}: {content}\n"
+                if (store_db):
+                    to_database_user.append({
+                        "role": role,
+                        "content": content
+                    })
+
+            story = []
+            # ensure each embed doesn't exceed character limit
+            for i in range(math.ceil(len(cur_text) / msg_max_len)):
+                story.append(cur_text[0:msg_max_len])
+                cur_text = cur_text[msg_max_len:]
+
+            for i in range(len(story)):
+                embed = nextcord.Embed(title=f"Your finished chat log (Part **{i + 1}** of **{len(story)}**):", description=f"{story[i]}")
+                await ctx.channel.send(f"{ctx.author.mention}", embed=embed)
+
+            if (store_db):
+                # get current id
+                id = (await self.counter())['count']
+                data = {
+                    'id': id,
+                    'datetime': current_datetime,
+                    'user_id': ctx.author.id,
+                    'username': ctx.author.name,
+                    'discriminator': ctx.author.discriminator,
+                    'chat_log_ai': to_database_ai,
+                    'chat_log_user': to_database_user
+                }
+                self.bot.chat_history.insert_one(data)
+            return
+        
         while True:
-            async def end_chat():
-                msg_max_len = 4000
-                # Get the current date and time
-                current_datetime = datetime.now()
-
-                await ctx.channel.send(f"{ctx.author.mention}, ending chat instance...")
-                chat_sessions[ctx.author.id] = False
-
-                cur_text = ""
-                # format for storing in database
-                to_database_ai = []
-                to_database_user = []
-                if (store_db):
-                    to_database_ai = [{
-                        "role": "system",
-                        "content": messages_ai[0]['content']
-                    },
-                    {
-                        "role": "user",
-                        "content": messages_ai[1]['content']
-                    }]
-                    # duplicate array
-                    to_database_user = to_database_ai[:]
-
-                for m in range(len(messages_ai) - 3):
-                    # get after system message and embeddings message
-                    block = messages_ai[m + 3]
-                    role = block['role']
-                    content = block['content']
-                    if (store_db):
-                        to_database_ai.append({
-                            "role": role,
-                            "content": content
-                        })
-
-                for m in range(len(messages_user) - 3):
-                    # get after system message and embeddings message
-                    block = messages_user[m + 3]
-                    role = block['role']
-                    content = block['content']
-                    cur_text += f"{role.capitalize()}: {content}\n"
-                    if (store_db):
-                        to_database_user.append({
-                            "role": role,
-                            "content": content
-                        })
-
-                story = []
-                # ensure each embed doesn't exceed character limit
-                for i in range(math.ceil(len(cur_text) / msg_max_len)):
-                    story.append(cur_text[0:msg_max_len])
-                    cur_text = cur_text[msg_max_len:]
-
-                for i in range(len(story)):
-                    embed = nextcord.Embed(title=f"Your finished chat log (Part **{i + 1}** of **{len(story)}**):", description=f"{story[i]}")
-                    await ctx.channel.send(f"{ctx.author.mention}", embed=embed)
-
-                if (store_db):
-                    # get current id
-                    id = (await self.counter())['count']
-                    data = {
-                        'id': id,
-                        'datetime': current_datetime,
-                        'user_id': ctx.author.id,
-                        'username': ctx.author.name,
-                        'discriminator': ctx.author.discriminator,
-                        'chat_log_ai': to_database_ai,
-                        'chat_log_user': to_database_user
-                    }
-                    self.bot.chat_history.insert_one(data)
+            if (not chat_sessions[ctx.author.id]):
+                await ctx.channel.send(f"{ctx.author.mention} Force exit detected, exiting chat instance...")
+                await end_chat()
                 return
-            
+
             placeholder = await ctx.channel.send("https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjU4ZW9tcHhpeWQ0dGZpYnprNTc4ODgzdm40ZzFwa256MWFyZGhsdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/uBt1p1imV3MExnFoQs/giphy.gif")
             temperature = 1.0
 
