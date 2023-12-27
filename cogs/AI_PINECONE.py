@@ -18,6 +18,7 @@ import numpy as np
 from openai.embeddings_utils import distances_from_embeddings
 
 import pymongo
+import pinecone
 
 openai.api_key = os.getenv('OPENAI_KEY')
 
@@ -254,9 +255,6 @@ class AI(commands.Cog):
             placeholder = await ctx.channel.send("https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjU4ZW9tcHhpeWQ0dGZpYnprNTc4ODgzdm40ZzFwa256MWFyZGhsdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/uBt1p1imV3MExnFoQs/giphy.gif")
             temperature = 1.0
 
-            # print(f"Temperature: {temperature}\n")
-            # print(messages)
-
             try:
                 response = None
                 async with ctx.channel.typing():
@@ -289,7 +287,7 @@ class AI(commands.Cog):
                         await placeholder.edit(content=f"{ctx.author.mention}, {text}")
             except Exception as e:
                 print(e)
-                await ctx.channel.send(f"{ctx.author.mention} An error occurred. Please let Zach know.\nEnding chat...")
+                await ctx.channel.send(f"{ctx.author.mention} An error occurred: {e}\nEnding chat...")
                 await end_chat()
                 return
             
@@ -313,6 +311,7 @@ class AI(commands.Cog):
                 await end_chat()
                 return
 
+    # handles chatting normally - this is used by the general public.
     @commands.command(name="chat", aliases=["ch"])
     async def chat_embeddings(self, ctx, *question: str):
         await self.embeddings_model(ctx=ctx, question=question, store_db=True)
@@ -324,6 +323,7 @@ class AI(commands.Cog):
         await self.embeddings_model(ctx=ctx, question=question, store_db=False)
         return
 
+    # function to handle summarizing input text
     async def summarize(self, text):
         model="gpt-3.5-turbo"
         max_tokens=512
@@ -381,8 +381,6 @@ class AI(commands.Cog):
 
         cur_len = 0
         results = []
-
-        
 
         for i, row in df.sort_values("distances", ascending=True).iterrows():
             # print(f"{row['distances']} {row['text']}")
