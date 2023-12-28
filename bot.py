@@ -5,18 +5,22 @@ from cogs.Listeners import Listeners
 from cogs.AI import AI
 
 import pymongo
-import asyncio
+import pinecone
 
+import asyncio
 import os
 import requests
 import math
 
-# load env variables
 from dotenv import load_dotenv
+
+# load env variables
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-USER = os.getenv('USER')
-PWD = os.getenv('PWD')
+MONGO_USER = os.getenv('USER')
+MONGO_PWD = os.getenv('PWD')
+PC_API_KEY = os.getenv('PINECONE_KEY')
+PC_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT')
 
 intents = nextcord.Intents.all()
 prefix = "pq!"
@@ -28,13 +32,20 @@ class PQBot(commands.Bot):
 # config bot
 bot = PQBot(True, command_prefix=prefix, intents=intents)
 
-# create connection to database
-client = pymongo.MongoClient(f"mongodb+srv://{USER}:{PWD}@passionaibot.4dwr2me.mongodb.net/?retryWrites=true&w=majority")
+# create connection to mongodb database
+client = pymongo.MongoClient(f"mongodb+srv://{MONGO_USER}:{MONGO_PWD}@passionaibot.4dwr2me.mongodb.net/?retryWrites=true&w=majority")
 db = client['PassionAIDB']
 
 bot.chat_history = db['chat_history']
 bot.counter = db['counter']
 
+# create connection to pinecone database
+# load pinecone instance
+pinecone.init(api_key=PC_API_KEY, environment=PC_ENVIRONMENT)
+# get correct 'collection'
+bot.pai_index = pinecone.GRPCIndex("passion-ai-db")
+
+# load cogs
 bot.load_extension("cogs.Listeners")
 bot.load_extension("cogs.AI")
 

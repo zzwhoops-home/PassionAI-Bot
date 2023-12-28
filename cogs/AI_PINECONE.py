@@ -152,8 +152,9 @@ class AI(commands.Cog):
 
         await ctx.channel.send(f"{ctx.author.mention}, you are now starting a chat instance. Please note that embeddings will only be generated for the question __**you included with the command.**__\nBe sure to list all of the passions you want to include after the mention. If you mention the bot again, more embeddings will be generated (WIP)\n**To end the chat instance**, send **'end'** or the letter **'q'**.")
         
+        # create context for AI model for this specific question
         try:
-            context = self.create_context(question, df, max_len, size="ada")
+            context = self.create_context(question, df, max_len, model='text-embedding-ada-002')
         except Exception as e:
             print(e)
             await ctx.channel.send(f"Error: {e.message}. Please try again, this error may happen after a long period with no API activity.")
@@ -270,13 +271,16 @@ class AI(commands.Cog):
                     # convert to json, extract text with no new lines
                     response_json = json.loads(str((response)))
                     text = response_json['choices'][0]['message']['content'].strip()
+
                     # for DEBUG ONLY: TOKEN USAGE
                     tokens_used = response_json['usage']['total_tokens']
                     await ctx.channel.send(f"**TOKEN USAGE**: {tokens_used}/4096")
+
                     # add to conversation history
                     summarized_text = await self.summarize(text)
                     messages_ai.append({"role": "assistant", "content": summarized_text})
                     messages_user.append({"role": "assistant", "content": text})
+
                     # cheap fix for doubling character limit (splits into two messages if exceeding limit)
                     if (len(text) > 1950):
                         text_one = text[0:1950]
@@ -323,7 +327,7 @@ class AI(commands.Cog):
         await self.embeddings_model(ctx=ctx, question=question, store_db=False)
         return
 
-    # function to handle summarizing input text
+    # function to handle summarizing text for easier storage in DB
     async def summarize(self, text):
         model="gpt-3.5-turbo"
         max_tokens=512
@@ -356,6 +360,7 @@ class AI(commands.Cog):
         print(f"[{dt_string}]: {response_text}")
         return response_text
 
+    # increments number of total chat logs stored in DB
     async def counter(self):
         filter = {}
         data = {
@@ -366,13 +371,26 @@ class AI(commands.Cog):
         data = self.bot.counter.find_one_and_update(filter=filter, update=data, return_document=pymongo.ReturnDocument.BEFORE)
         return data
 
-    def create_context(self, question, df, max_len=1500, size="ada"):
+    # creates context for AI to get better responses
+    def create_context(self, question, df, max_len=1500, model='text-embedding-ada-002'):
         # any embeddings above this threshold will not be placed into context
         threshold = 0.23
 
         # get openai embeddings for the question
-        q_embeddings = openai.Embedding.create(
-            input=question, engine='text-embedding-ada-002')['data'][0]['embedding']
+        q_embeddings = openai.Embedding.create(input=question, engine=model)['data'][0]['embedding']
+
+        # cosine similarity using pinecone
+        res = self.bot.pai_index.query(vector=q_embeddings, top_k=10, include_metadata=True)
+
+        cur_len = 0
+        results = []
+
+        for item in res['matches']:
+            if item['score'] > threshold and cur_len < max_len:
+                cur_len += item['metadata']['token_ct'] + 4
+                results.append()
+            else:
+                break
 
         # get cosine similarity using built in openai function
         df["distances"] = distances_from_embeddings(q_embeddings,
@@ -384,7 +402,6 @@ class AI(commands.Cog):
 
         for i, row in df.sort_values("distances", ascending=True).iterrows():
             # print(f"{row['distances']} {row['text']}")
-            # print(f"{row['distances']}")
             cur_len += row["token_ct"] + 4
 
             if ((cur_len > max_len) or (row["distances"] > threshold)):
@@ -394,6 +411,7 @@ class AI(commands.Cog):
 
         # for i, row in df.sort_values("distances", ascending=True).iterrows():
         #     print(f"{row['distances']}")
+            
         # print embeddings used
         print("\n\n###\n\n".join(results))
         return "\n\n###\n\n".join(results)

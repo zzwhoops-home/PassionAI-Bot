@@ -4,7 +4,7 @@ import os
 import pinecone
 
 # read numpy converted embeddings dataframe
-df = pd.read_csv("processed/embeddings.csv", index_col=0)
+df = pd.read_csv("../processed/embeddings.csv", index_col=0)
 
 # for vals in df:
 #     print(vals)
@@ -24,7 +24,9 @@ for column, vals in df.iterrows():
     convert = vals['embeddings'][1:-1].split(", ")
     new = [float(num) for num in convert]
 
-    data.append((str(vals['index']), new, {'token_ct': vals['token_ct']}))
+    data.append((str(vals['index']), new, {'token_ct': vals['token_ct'], 'text': vals['text']}))
+
+print(data)
 
 # upsert to pinecone db
 pai_index.upsert(data)
