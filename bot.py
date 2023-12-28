@@ -47,13 +47,13 @@ bot.pai_index = pinecone.GRPCIndex("passion-ai-db")
 
 # load cogs
 bot.load_extension("cogs.Listeners")
-bot.load_extension("cogs.AI")
+bot.load_extension("cogs.AI_PINECONE")
 
 @bot.command(name="reloadall", aliases=["ra"])
 @commands.has_permissions(administrator=True)
 async def reload_all(ctx):
     bot.reload_extension("cogs.Listeners")
-    bot.reload_extension("cogs.AI")
+    bot.reload_extension("cogs.AI_PINECONE")
     await ctx.channel.send("Reloaded all modules!")
 
 @bot.command(name="reloadlisteners", aliases=["rl"])
@@ -65,7 +65,7 @@ async def reload_listeners(ctx):
 @bot.command(name="reloadai", aliases=["rai"])
 @commands.has_permissions(administrator=True)
 async def reload_ai(ctx):
-    bot.reload_extension("cogs.AI")
+    bot.reload_extension("cogs.AI_PINECONE")
     await ctx.channel.send("Reloaded AI module **only**.")
 
 @bot.command(name="clear")
@@ -86,8 +86,6 @@ async def clear(ctx, num=1):
     num_cleared = await ctx.channel.send(f"I have cleared **{num}** messages!")
     await asyncio.sleep(3)
     await num_cleared.delete()
-
-
 
 # @bot.command(name="thing")
 # @commands.has_permissions(administrator=True)
