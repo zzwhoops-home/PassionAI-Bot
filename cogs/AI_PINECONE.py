@@ -10,18 +10,10 @@ from datetime import datetime
 from dotenv import load_dotenv
 import openai
 
-import pandas as pd
-import numpy as np
-
 import pymongo
 import pinecone
 
 openai.api_key = os.getenv('OPENAI_KEY')
-
-# read numpy converted embeddings dataframe
-df = pd.read_csv("processed/embeddings.csv", index_col=0)
-# Convert the "embeddings" column to NumPy arrays
-df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
 
 # dictionary to ensure users are not already in a chat session
 chat_sessions = {}
@@ -150,7 +142,7 @@ class AI(commands.Cog):
         
         # create context for AI model for this specific question
         try:
-            context = self.create_context(question, df, max_len, model='text-embedding-ada-002')
+            context = self.create_context(question, max_len, model='text-embedding-ada-002')
         except Exception as e:
             print(e)
             await ctx.channel.send(f"Error: {e.message}. Please try again, this error may happen after a long period with no API activity.")
@@ -369,7 +361,7 @@ class AI(commands.Cog):
         return data
 
     # creates context for AI to get better responses
-    def create_context(self, question, df, max_len=1500, model='text-embedding-ada-002'):
+    def create_context(self, question, max_len=1500, model='text-embedding-ada-002'):
         # any embeddings BELOW (previously above, since we were measuring distances) this threshold will not be placed into context
         threshold = 0.80
 
@@ -383,6 +375,7 @@ class AI(commands.Cog):
         results = []
 
         for item in res['matches']:
+            print(item['score'])
             if item['score'] > threshold and cur_len < max_len:
                 cur_len += item['metadata']['token_ct'] + 4
                 results.append(item['metadata']['text'])

@@ -1,9 +1,6 @@
 import nextcord
 from nextcord.ext import commands
 
-from cogs.Listeners import Listeners
-from cogs.AI import AI
-
 import pymongo
 import pinecone
 
