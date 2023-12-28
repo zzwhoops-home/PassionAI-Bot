@@ -11,11 +11,7 @@ from dotenv import load_dotenv
 import openai
 
 import pandas as pd
-# import matplotlib.pyplot as plt
-# import plotly.express as px
-# from scipy import spatial
 import numpy as np
-from openai.embeddings_utils import distances_from_embeddings
 
 import pymongo
 import pinecone
@@ -165,8 +161,9 @@ class AI(commands.Cog):
                     "content": "Answer the question based on the context provided, and always attempt to synthesize the context. Always attempt to answer the question AND PRIORITIZE using the context given. The context that is provided includes 'passions', which you can think of as desires of human nature, and their associated descriptions. There are five tiers: low, medium-low, neutral, medium-high, and high, which represent how strongly a passion affects a person's personality. If asked to provide passions, you must answer explicitly based on the passions provided in the context. Any tier below 'neutral' should be treated as if the passion were the opposite. PRETEND THAT YOU ARE A HUMAN, AND NEVER SAY THAT YOU CANNOT GIVE AN OPINION OR VOICE A SUGGESTION."
                 },
                 {
+                    # augment query with another stop code
                     "role": "user",
-                    "content": f"Context:\n\n{context}"
+                    "content": f"Context:{context}\n\n###\n\n"
                 }, 
                 {
                     "role": "user",
@@ -373,8 +370,8 @@ class AI(commands.Cog):
 
     # creates context for AI to get better responses
     def create_context(self, question, df, max_len=1500, model='text-embedding-ada-002'):
-        # any embeddings above this threshold will not be placed into context
-        threshold = 0.23
+        # any embeddings BELOW (previously above, since we were measuring distances) this threshold will not be placed into context
+        threshold = 0.80
 
         # get openai embeddings for the question
         q_embeddings = openai.Embedding.create(input=question, engine=model)['data'][0]['embedding']
@@ -388,29 +385,9 @@ class AI(commands.Cog):
         for item in res['matches']:
             if item['score'] > threshold and cur_len < max_len:
                 cur_len += item['metadata']['token_ct'] + 4
-                results.append()
+                results.append(item['metadata']['text'])
             else:
                 break
-
-        # get cosine similarity using built in openai function
-        df["distances"] = distances_from_embeddings(q_embeddings,
-                                                    df["embeddings"].values,
-                                                    distance_metric="cosine")
-
-        cur_len = 0
-        results = []
-
-        for i, row in df.sort_values("distances", ascending=True).iterrows():
-            # print(f"{row['distances']} {row['text']}")
-            cur_len += row["token_ct"] + 4
-
-            if ((cur_len > max_len) or (row["distances"] > threshold)):
-                break
-
-            results.append(row["text"])
-
-        # for i, row in df.sort_values("distances", ascending=True).iterrows():
-        #     print(f"{row['distances']}")
             
         # print embeddings used
         print("\n\n###\n\n".join(results))
