@@ -10,4 +10,5 @@ model = 'text-embedding-ada-002'
 
 q_embeddings = openai.Embedding.create(input=question, engine=model)['data'][0]['embedding']
 
-print(q_embeddings)
+with open("embed.txt", "w") as f:
+    f.writelines(str(q_embeddings))
