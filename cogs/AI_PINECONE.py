@@ -2,7 +2,6 @@ import nextcord
 from nextcord.ext import commands
 
 import math
-import json
 import os
 import asyncio
 from datetime import datetime
@@ -52,13 +51,15 @@ class AI(commands.Cog):
         prompt = "You are a friendly chatbot.\n"
 
         # customize response
-        response = self.client.completions.create(model="text-davinci-003",
-        prompt=f"{prompt} {message}",
-        temperature=0,
-        max_tokens=max_tokens)
+        response = self.client.completions.create(
+            model="text-davinci-003",
+            prompt=f"{prompt} {message}",
+            temperature=0,
+            max_tokens=max_tokens
+        )
         
         # convert to json, extract text with no new lines
-        response_json = json.loads(str((response)))
+        response_json = response.model_dump()
         text = response_json['choices'][0]['text'].strip()
 
         embed = nextcord.Embed(description=text)
@@ -119,7 +120,7 @@ class AI(commands.Cog):
             context = self.create_context(question, max_len, model='text-embedding-ada-002')
         except Exception as e:
             print(e)
-            await ctx.channel.send(f"Error: {e.message}. Please try again, this error may happen after a long period with no API activity.")
+            await ctx.channel.send(f"Error: {e}. Please try again, this error may happen after a long period with no API activity.")
 
         messages_ai.extend([
                 {
@@ -232,7 +233,7 @@ class AI(commands.Cog):
                                                             stop=stop_sequence)
 
                     # convert to json, extract text with no new lines
-                    response_json = json.loads(str((response)))
+                    response_json = response.model_dump()
                     text = response_json['choices'][0]['message']['content'].strip()
 
                     # for DEBUG ONLY: TOKEN USAGE
@@ -316,7 +317,7 @@ class AI(commands.Cog):
                                                 stop=stop_sequence)
 
         # convert to json, extract text with no new lines
-        response_json = json.loads(str((response)))
+        response_json = response.model_dump()
         response_text = response_json['choices'][0]['message']['content'].strip()
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -339,11 +340,13 @@ class AI(commands.Cog):
         # any embeddings BELOW (previously above, since we were measuring distances) this threshold will not be placed into context
         threshold = 0.80
 
-        # get openai embeddings for the question
-        q_embeddings = self.client.embeddings.create(input=question, engine=model)['data'][0]['embedding']
+        # get openai embeddings for the question + convert to dict
+        q_embeddings = self.client.embeddings.create(input=question, model=model)
+        q_embeddings_dict = q_embeddings.model_dump()
+        embeddings = q_embeddings_dict['data'][0]['embedding']
 
         # cosine similarity using pinecone
-        res = self.bot.pai_index.query(vector=q_embeddings, top_k=10, include_metadata=True)
+        res = self.bot.pai_index.query(vector=embeddings, top_k=10, include_metadata=True)
 
         cur_len = 0
         results = []
