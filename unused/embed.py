@@ -5,7 +5,7 @@ import os
 load_dotenv()
 openai.api_key = os.getenv('OPENAI_KEY')
 
-question = "What makes someone who is high Acceptance, medium Vengeance, and low Confidence unique?"
+question = "What makes a very competitive person unique? What if they are also high Acceptance, low Power, high Free-Spirit, medium-low Saving, and high Idealism?"
 model = 'text-embedding-ada-002'
 
 q_embeddings = openai.Embedding.create(input=question, engine=model)['data'][0]['embedding']
