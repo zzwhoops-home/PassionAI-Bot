@@ -8,12 +8,10 @@ import asyncio
 from datetime import datetime
 
 from dotenv import load_dotenv
-import openai
+from openai import OpenAI
 
 import pymongo
 import pinecone
-
-openai.api_key = os.getenv('OPENAI_KEY')
 
 # dictionary to ensure users are not already in a chat session
 chat_sessions = {}
@@ -24,7 +22,8 @@ class AI(commands.Cog):
         self.bot = bot
         # load API key from env
         load_dotenv()
-        openai.api_key = os.getenv('OPENAI_KEY')
+        self.client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
+
 
     @commands.command(name="forceexit", aliases=["fe", "fexit"])
     async def clear_sessions(self, ctx):
@@ -53,12 +52,10 @@ class AI(commands.Cog):
         prompt = "You are a friendly chatbot.\n"
 
         # customize response
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=f"{prompt} {message}",
-            temperature=0,
-            max_tokens=max_tokens
-        )
+        response = self.client.completions.create(model="text-davinci-003",
+        prompt=f"{prompt} {message}",
+        temperature=0,
+        max_tokens=max_tokens)
         
         # convert to json, extract text with no new lines
         response_json = json.loads(str((response)))
@@ -74,29 +71,6 @@ class AI(commands.Cog):
         if (usage >= max_tokens):
             await ctx.channel.send(f"{ctx.author.mention} Hey, this response may be cut off due to API limitations!")
             return
-
-    # class MyView(nextcord.ui.View):
-    #     @nextcord.ui.select(
-    #         placeholder = "Please provide your feedback!",
-    #         min_values = 1,
-    #         max_values = 1,
-    #         options = [
-    #             nextcord.SelectOption(
-    #                 label="Vanilla",
-    #                 description="Pick this if you like vanilla!"
-    #             ),
-    #             nextcord.SelectOption(
-    #                 label="Chocolate",
-    #                 description="Pick this if you like chocolate!"
-    #             ),
-    #             nextcord.SelectOption(
-    #                 label="Strawberry",
-    #                 description="Pick this if you like strawberry!"
-    #             )
-    #         ]
-    #     )
-    #     async def select_callback(self, select, interaction): # the function called when the user is done selecting options
-    #         await interaction.response.send_message(f"{select.values[0]} yeah buddy")
 
     async def embeddings_model(self, ctx, question, store_db=False):
         if (ctx.channel.category.id != 1074104279473852546):
@@ -242,13 +216,13 @@ class AI(commands.Cog):
                 await end_chat()
                 return
 
-            placeholder = await ctx.channel.send("https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjU4ZW9tcHhpeWQ0dGZpYnprNTc4ODgzdm40ZzFwa256MWFyZGhsdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/uBt1p1imV3MExnFoQs/giphy.gif")
+            placeholder = await ctx.channel.send("https://i.ibb.co/XFyxJPh/unnamed.gif")
             temperature = 1.0
 
             try:
                 response = None
                 async with ctx.channel.typing():
-                    response = openai.ChatCompletion.create(model=model,
+                    response = self.client.chat.completions.create(model=model,
                                                             messages=messages_ai,
                                                             temperature=temperature,
                                                             max_tokens=max_tokens,
@@ -332,7 +306,7 @@ class AI(commands.Cog):
             "content": f"{prompt}{text}"
         }]
         
-        response = openai.ChatCompletion.create(model=model,
+        response = self.client.chat.completions.create(model=model,
                                                 messages=messages,
                                                 temperature=0.0,
                                                 max_tokens=max_tokens,
@@ -366,7 +340,7 @@ class AI(commands.Cog):
         threshold = 0.80
 
         # get openai embeddings for the question
-        q_embeddings = openai.Embedding.create(input=question, engine=model)['data'][0]['embedding']
+        q_embeddings = self.client.embeddings.create(input=question, engine=model)['data'][0]['embedding']
 
         # cosine similarity using pinecone
         res = self.bot.pai_index.query(vector=q_embeddings, top_k=10, include_metadata=True)

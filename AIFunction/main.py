@@ -6,7 +6,9 @@ import os
 from datetime import datetime
 
 from dotenv import load_dotenv
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key=get_openai_key())
 
 import pandas as pd
 # import matplotlib.pyplot as plt
@@ -25,7 +27,6 @@ def get_openai_key():
     # remember to add api token here if testing in local environment
     return os.environ.get("OPENAI_KEY", "Specified environment variable is not set.")
 
-openai.api_key = get_openai_key()
 
 @functions_framework.http
 def passion_ai_cloud(request):
@@ -104,7 +105,7 @@ def embeddings_model(question, temperature=1.0, max_tokens=512):
     # print(f"Temperature: {temperature}\n")
     # print(messages)
     try:
-        response = openai.ChatCompletion.create(model=model,
+        response = client.chat.completions.create(model=model,
                                                 messages=messages_user,
                                                 temperature=temperature,
                                                 max_tokens=max_tokens,
@@ -129,8 +130,7 @@ def create_context(question, df, max_len=2048, size="ada"):
     threshold = 0.23
 
     # get openai embeddings for the question
-    q_embeddings = openai.Embedding.create(
-        input=question, engine='text-embedding-ada-002')['data'][0]['embedding']
+    q_embeddings = client.embeddings.create(input=question, engine='text-embedding-ada-002')['data'][0]['embedding']
 
     # get cosine similarity using built in openai function
     df["distances"] = distances_from_embeddings(q_embeddings,
