@@ -1,32 +1,30 @@
 import functions_framework
 
-import math
-import json
 import os
-from datetime import datetime
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
-client = OpenAI(api_key=get_openai_key())
+import pinecone
 
-import pandas as pd
-# import matplotlib.pyplot as plt
-# import plotly.express as px
-# from scipy import spatial
-import numpy as np
-from openai.embeddings_utils import distances_from_embeddings
+def get_pinecone_key():
+    return os.environ.get('PINECONE_KEY', "Pinecone API key is not set.")
 
-# read numpy converted embeddings dataframe
-# df = pd.read_csv("AIFunction/embeddings.csv", index_col=0)
-df = pd.read_csv("embeddings.csv", index_col=0)
-# Convert the "embeddings" column to NumPy arrays
-df['embeddings'] = df['embeddings'].apply(eval).apply(np.array)
+def get_pinecone_env():
+    return os.environ.get('PINECONE_ENVIRONMENT', "Pinecone environment is not set.")
 
 def get_openai_key():
     # remember to add api token here if testing in local environment
     return os.environ.get("OPENAI_KEY", "Specified environment variable is not set.")
 
+# initialize openai client
+client = OpenAI(api_key=get_openai_key())
+
+# create connection to pinecone database
+# load pinecone instance
+pinecone.init(api_key=get_pinecone_key(), environment=get_pinecone_env())
+# get correct 'collection'
+pai_index = pinecone.GRPCIndex("passion-ai-db")
 
 @functions_framework.http
 def passion_ai_cloud(request):
@@ -39,9 +37,11 @@ def passion_ai_cloud(request):
         Response object using `make_response`
         <https://flask.palletsprojects.com/en/1.1.x/api/#flask.make_response>.
     """
+    # get json in request or args (if entered in browser) to deny access
     request_json = request.get_json(silent=True)
     request_args = request.args
 
+    # dumb way to make a switch statement of sorts
     if request_json and 'question' in request_json:
         # check for custom parameters
         question = request_json['question']
@@ -82,7 +82,7 @@ def embeddings_model(question, temperature=1.0, max_tokens=512):
     explicit="Answer based on the passions provided:"
 
     try:
-        context = create_context(question, df, max_len, size="ada")
+        context = create_context(question, max_len=2048, model='text-embedding-ada-002')
         # print(context)
     except Exception as e:
         return(e)
@@ -94,16 +94,13 @@ def embeddings_model(question, temperature=1.0, max_tokens=512):
             },
             {
                 "role": "user",
-                "content": f"Context:\n\n{context}"
+                "content": f"Context:{context}\n\n###\n\n"
             }, 
             {
                 "role": "user",
                 "content": f"{explicit} {question}"
             }])
 
-
-    # print(f"Temperature: {temperature}\n")
-    # print(messages)
     try:
         response = client.chat.completions.create(model=model,
                                                 messages=messages_user,
@@ -115,41 +112,40 @@ def embeddings_model(question, temperature=1.0, max_tokens=512):
                                                 stop=stop_sequence)
 
         # convert to json, extract text with no new lines
-        response_json = json.loads(str((response)))
+        response_json = response.model_dump()
         text = response_json['choices'][0]['message']['content'].strip()
         # for DEBUG ONLY: TOKEN USAGE
         # tokens_used = response_json['usage']['total_tokens']
-
-        # return response
         return(text)
     except Exception as e:
         return(e)
 
-def create_context(question, df, max_len=2048, size="ada"):
-    # any embeddings above this threshold will not be placed into context
-    threshold = 0.23
+# creates context for AI to get better responses
+def create_context(question, max_len=1500, model='text-embedding-ada-002'):
+    # any embeddings BELOW (previously above, since we were measuring distances) this threshold will not be placed into context
+    threshold = 0.80
 
-    # get openai embeddings for the question
-    q_embeddings = client.embeddings.create(input=question, engine='text-embedding-ada-002')['data'][0]['embedding']
+    # get openai embeddings for the question + convert to dict
+    q_embeddings = client.embeddings.create(input=question, model=model)
+    q_embeddings_dict = q_embeddings.model_dump()
+    embeddings = q_embeddings_dict['data'][0]['embedding']
 
-    # get cosine similarity using built in openai function
-    df["distances"] = distances_from_embeddings(q_embeddings,
-                                                df["embeddings"].values,
-                                                distance_metric="cosine")
+    # cosine similarity using pinecone
+    res = pai_index.query(vector=embeddings, top_k=10, include_metadata=True)
 
     cur_len = 0
     results = []
 
-    for i, row in df.sort_values("distances", ascending=True).iterrows():
-        cur_len += row["token_ct"] + 4
-
-        if ((cur_len > max_len) or (row["distances"] > threshold)):
+    for item in res['matches']:
+        print(item['score'])
+        if item['score'] > threshold and cur_len < max_len:
+            cur_len += item['metadata']['token_ct'] + 4
+            results.append(item['metadata']['text'])
+        else:
             break
-
-        results.append(row["text"])
-
+        
     # print embeddings used
-    # print("\n\n###\n\n".join(results))
+    print("\n\n###\n\n".join(results))
     return "\n\n###\n\n".join(results)
 
 # if __name__ == "__main__":
