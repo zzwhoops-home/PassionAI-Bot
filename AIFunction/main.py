@@ -76,7 +76,7 @@ def embeddings_model(question, temperature=1.0, max_tokens=512):
         "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the provided passions and the information associated with them."
     }]
     max_len=2048
-    model="gpt-3.5-turbo"
+    model="gpt-3.5-turbo-1106"
     max_tokens=max_tokens
     stop_sequence=None
     explicit="Answer based on the passions provided:"
