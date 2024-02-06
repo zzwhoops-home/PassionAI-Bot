@@ -107,7 +107,7 @@ class AI(commands.Cog):
             "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the provided passions and the information associated with them."
         }]
         max_len=1500
-        model="gpt-3.5-turbo-1106"
+        model="gpt-3.5-turbo-0125"
         max_tokens=512
         stop_sequence=None
         # try several different 'explicit' messages, like 'Answer based on the passions provided:', 'Based on my passions, ', etc...
