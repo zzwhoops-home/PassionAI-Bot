@@ -26,6 +26,9 @@ class AI(commands.Cog):
 
     @commands.command(name="forceexit", aliases=["fe", "fexit"])
     async def clear_sessions(self, ctx):
+        """If some error gets thrown which causes someone to not be removed from the dictionary (need to make a DB collection later)
+        This command can be used to force exit someone's chat session
+        """
         if (ctx.author.id in chat_sessions):
             if (chat_sessions[ctx.author.id]):
                 chat_sessions[ctx.author.id] = False
@@ -73,7 +76,17 @@ class AI(commands.Cog):
             await ctx.channel.send(f"{ctx.author.mention} Hey, this response may be cut off due to API limitations!")
             return
 
+
     async def embeddings_model(self, ctx, question, store_db=False):
+        """The main model which uses embeddings pulled from Pinecone DB
+        Args:
+            ctx (_type_): Context
+            question (_type_): The question to ask the AI model
+            store_db (bool, optional): Whether the responses will be tracked in the database. Passed from "chatnodb" command which can only be used by administrators. Defaults to False.
+
+        Returns:
+            _type_: _description_
+        """
         if (ctx.channel.category.id != 1074104279473852546):
             await ctx.channel.send("Please send your messages under any of the AI channels only.")
             return
