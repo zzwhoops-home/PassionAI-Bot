@@ -267,7 +267,7 @@ class AI(commands.Cog):
 
                     # for DEBUG ONLY: TOKEN USAGE
                     tokens_used = response_json['usage']['total_tokens']
-                    await ctx.channel.send(f"**TOKEN USAGE**: {tokens_used}/4096")
+                    # await ctx.channel.send(f"**TOKEN USAGE**: {tokens_used}/16385)
 
                     # add to conversation history
                     summarized_text = await self.summarize(text)
@@ -368,7 +368,7 @@ class AI(commands.Cog):
     # creates context for AI to get better responses
     def create_context(self, question, max_len=1500, model='text-embedding-3-small'):
         # any embeddings BELOW (previously above, since we were measuring distances) this threshold will not be placed into context
-        threshold = 0.80
+        threshold = 0.40
 
         # get openai embeddings for the question + convert to dict
         q_embeddings = self.client.embeddings.create(input=question, model=model, dimensions=1536)
