@@ -112,12 +112,17 @@ class AI(commands.Cog):
                 await ctx.channel.send(f"{ctx.author.mention}, you are already in an active chat instance. Please type **'end'** or **'q'** to end your current chat instance.\nAlternatively, type {self.bot.command_prefix}forceexit if you are stuck in an instance.")
                 return
             
+        # no return statement needed: "restarting session" just tells the user what is happening
         if (ctx.author.id in force_exits):
             force_exits.remove(ctx.author.id)
             await ctx.channel.send(f"{ctx.author.mention}, previous force exit detected. Restarting session...")
 
         length = -1
         question = f"{' '.join(question)}"
+
+        if (self.check_valid_question(question) == 'no'):
+            await ctx.channel.send(f"{ctx.author.mention}, please ask a question relevant to your or someone else's passions.")
+            return
 
         for word in question:
             length += len(word)
@@ -142,7 +147,7 @@ class AI(commands.Cog):
         # try several different 'explicit' messages, like 'Answer based on the passions provided:', 'Based on my passions, ', etc...
         explicit="Based on these passions, "
 
-        await ctx.channel.send(f"{ctx.author.mention}, you are now starting a chat instance. Please note that embeddings will only be generated for the question __**you included with the command.**__\nBe sure to list all of the passions you want to include after the mention. If you mention the bot again, more embeddings will be generated (WIP)\n**To end the chat instance**, send **'end'** or the letter **'q'**.")
+        await ctx.channel.send(f"{ctx.author.mention}, you are now starting a chat instance. Please note that embeddings will only be generated for the question __**you included with the command.**__\nBe sure to list all of the passions you want to include after the mention.\n**To end the chat instance**, send **'end'** or the letter **'q'**.")
         
         # create context for AI model for this specific question
         try:
