@@ -230,6 +230,8 @@ class AI(commands.Cog):
                 id = (await self.counter())['count']
                 data = {
                     'id': id,
+                    'guild_id': ctx.guild.id,
+                    'guild_name': ctx.guild.name,
                     'datetime': current_datetime,
                     'user_id': ctx.author.id,
                     'username': ctx.author.name,
