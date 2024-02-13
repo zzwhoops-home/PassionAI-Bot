@@ -75,17 +75,33 @@ class AI(commands.Cog):
         if (usage >= max_tokens):
             await ctx.channel.send(f"{ctx.author.mention} Hey, this response may be cut off due to API limitations!")
             return
+        
+    async def check_valid_question(self, question):
+        """Checks if the question in the parameter has anything to do with passions and motivations.
 
+        Args:
+            question (str): The question inputted by the user
+
+        Returns:
+            str: A response, either 'yes' or 'no' depending on whether or not the question has to do with "passions"
+        """
+        prompt = f"Does this question have anything to do with passions, which are in essence makes up someone's personality and motivations, or have even slight connections to human behavior? Answer simply 'yes' if it does, and 'no' if it does not.\nQuestion: {question}"
+        messages = [{"role": "user", "content": prompt}]
+
+        response = self.client.chat.completions.create(model='gpt-3.5-turbo-0125',
+                                                       messages=messages,
+                                                       temperature=0)
+        response_json = response.model_dump()
+        
+        response_text = response_json['choices'][0]['message']['content'].strip()
+        return response_text
 
     async def embeddings_model(self, ctx, question, store_db=False):
         """The main model which uses embeddings pulled from Pinecone DB
         Args:
-            ctx (_type_): Context
-            question (_type_): The question to ask the AI model
+            ctx (nextcord.ext.commands.Context): Context
+            question (str): The question to ask the AI model
             store_db (bool, optional): Whether the responses will be tracked in the database. Passed from "chatnodb" command which can only be used by administrators. Defaults to False.
-
-        Returns:
-            _type_: _description_
         """
         if (ctx.channel.category.id != 1074104279473852546):
             await ctx.channel.send("Please send your messages under any of the AI channels only.")
@@ -130,7 +146,7 @@ class AI(commands.Cog):
         
         # create context for AI model for this specific question
         try:
-            context = self.create_context(question, max_len, model='text-embedding-ada-002')
+            context = self.create_context(question, max_len, model='text-embedding-3-small')
         except Exception as e:
             print(e)
             await ctx.channel.send(f"Error: {e}. Please try again, this error may happen after a long period with no API activity.")
@@ -345,16 +361,17 @@ class AI(commands.Cog):
                 "count": 1
             }
         }
+        # updates and returns ID counter all in one line
         data = self.bot.counter.find_one_and_update(filter=filter, update=data, return_document=pymongo.ReturnDocument.BEFORE)
         return data
 
     # creates context for AI to get better responses
-    def create_context(self, question, max_len=1500, model='text-embedding-ada-002'):
+    def create_context(self, question, max_len=1500, model='text-embedding-3-small'):
         # any embeddings BELOW (previously above, since we were measuring distances) this threshold will not be placed into context
         threshold = 0.80
 
         # get openai embeddings for the question + convert to dict
-        q_embeddings = self.client.embeddings.create(input=question, model=model)
+        q_embeddings = self.client.embeddings.create(input=question, model=model, dimensions=1536)
         q_embeddings_dict = q_embeddings.model_dump()
         embeddings = q_embeddings_dict['data'][0]['embedding']
 

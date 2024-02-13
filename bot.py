@@ -2,7 +2,7 @@ import nextcord
 from nextcord.ext import commands
 
 import pymongo
-import pinecone
+from pinecone import Pinecone
 
 import asyncio
 import os
@@ -16,8 +16,7 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 MONGO_USER = os.getenv('USER')
 MONGO_PWD = os.getenv('PWD')
-PC_API_KEY = os.getenv('PINECONE_KEY')
-PC_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT')
+PC_API_KEY = os.getenv('PINECONE_KEY_SERVERLESS')
 
 intents = nextcord.Intents.all()
 prefix = "pq!"
@@ -38,9 +37,9 @@ bot.counter = db['counter']
 
 # create connection to pinecone database
 # load pinecone instance
-pinecone.init(api_key=PC_API_KEY, environment=PC_ENVIRONMENT)
+pinecone_client = Pinecone(api_key=PC_API_KEY)
 # get correct 'collection'
-bot.pai_index = pinecone.GRPCIndex("passion-ai-db")
+bot.pai_index = pinecone_client.Index("passion-ai-db-serverless")
 
 # load cogs
 bot.load_extension("cogs.Listeners")
