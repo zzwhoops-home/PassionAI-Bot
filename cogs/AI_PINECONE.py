@@ -322,7 +322,7 @@ class AI(commands.Cog):
 
     # function to handle summarizing text for easier storage in DB
     async def summarize(self, text):
-        model="gpt-3.5-turbo-1106"
+        model="gpt-3.5-turbo-0125"
         max_tokens=512
         stop_sequence=None
         prompt="Please summarize this in at most, two sentences: "
