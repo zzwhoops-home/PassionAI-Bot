@@ -103,9 +103,9 @@ class AI(commands.Cog):
             question (str): The question to ask the AI model
             store_db (bool, optional): Whether the responses will be tracked in the database. Passed from "chatnodb" command which can only be used by administrators. Defaults to False.
         """
-        if (ctx.channel.category.id != 1074104279473852546):
-            await ctx.channel.send("Please send your messages under any of the AI channels only.")
-            return
+        # if (ctx.channel.category.id != 1074104279473852546):
+        #     await ctx.channel.send("Please send your messages under any of the AI channels only.")
+        #     return
 
         if (ctx.author.id in chat_sessions):
             if (chat_sessions[ctx.author.id]):
