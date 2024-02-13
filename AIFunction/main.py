@@ -5,13 +5,10 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
-import pinecone
+from pinecone import Pinecone
 
 def get_pinecone_key():
-    return os.environ.get('PINECONE_KEY', "Pinecone API key is not set.")
-
-def get_pinecone_env():
-    return os.environ.get('PINECONE_ENVIRONMENT', "Pinecone environment is not set.")
+    return os.environ.get('PINECONE_KEY_SERVERLESS', "Pinecone API key is not set.")
 
 def get_openai_key():
     # remember to add api token here if testing in local environment
@@ -22,9 +19,9 @@ client = OpenAI(api_key=get_openai_key())
 
 # create connection to pinecone database
 # load pinecone instance
-pinecone.init(api_key=get_pinecone_key(), environment=get_pinecone_env())
+pinecone_client = Pinecone(api_key=get_pinecone_key())
 # get correct 'collection'
-pai_index = pinecone.GRPCIndex("passion-ai-db")
+pai_index = pinecone_client.Index("passion-ai-db-serverless")
 
 @functions_framework.http
 def passion_ai_cloud(request):
@@ -76,13 +73,13 @@ def embeddings_model(question, temperature=1.0, max_tokens=512):
         "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the provided passions and the information associated with them."
     }]
     max_len=2048
-    model="gpt-3.5-turbo-1106"
+    model="gpt-3.5-turbo-0125"
     max_tokens=max_tokens
     stop_sequence=None
     explicit="Answer based on the passions provided:"
 
     try:
-        context = create_context(question, max_len=2048, model='text-embedding-ada-002')
+        context = create_context(question, max_len=2048, model='text-embedding-3-small', dimensions=1536)
         # print(context)
     except Exception as e:
         return(e)
@@ -121,7 +118,7 @@ def embeddings_model(question, temperature=1.0, max_tokens=512):
         return(e)
 
 # creates context for AI to get better responses
-def create_context(question, max_len=1500, model='text-embedding-ada-002'):
+def create_context(question, max_len=1500, model='text-embedding-3-small', dimensions=1536):
     # any embeddings BELOW (previously above, since we were measuring distances) this threshold will not be placed into context
     threshold = 0.80
 
