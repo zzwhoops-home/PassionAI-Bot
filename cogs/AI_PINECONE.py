@@ -94,7 +94,7 @@ class AI(commands.Cog):
         response_json = response.model_dump()
         
         response_text = response_json['choices'][0]['message']['content'].strip()
-        return response_text
+        return response_text.strip().lower()
 
     async def embeddings_model(self, ctx, question, store_db=False):
         """The main model which uses embeddings pulled from Pinecone DB
@@ -121,6 +121,7 @@ class AI(commands.Cog):
         question = f"{' '.join(question)}"
 
         question_valid = await self.check_valid_question(question)
+        print(question_valid)
         if (question_valid == 'no'):
             await ctx.channel.send(f"{ctx.author.mention}, please ask a question relevant to your or someone else's passions.")
             return
