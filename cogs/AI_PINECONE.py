@@ -86,6 +86,7 @@ class AI(commands.Cog):
             str: A response, either 'yes' or 'no' depending on whether or not the question has to do with "passions"
         """
         prompt = f"Is this a valid question that isn't complete gibberish? Answer simply 'yes' if it does, and 'no' if it does not.\nQuestion: {question}"
+        print(prompt)
         messages = [{"role": "user", "content": prompt}]
 
         response = self.client.chat.completions.create(model='gpt-3.5-turbo-0125',
@@ -93,8 +94,10 @@ class AI(commands.Cog):
                                                        temperature=0)
         response_json = response.model_dump()
         
-        response_text = response_json['choices'][0]['message']['content'].strip()
-        return response_text.strip().lower()
+        response_text = response_json['choices'][0]['message']['content'].strip().lower()
+        
+        print(response_text)
+        return response_text
 
     async def embeddings_model(self, ctx, question, store_db=False):
         """The main model which uses embeddings pulled from Pinecone DB
@@ -121,7 +124,6 @@ class AI(commands.Cog):
         question = f"{' '.join(question)}"
 
         question_valid = await self.check_valid_question(question)
-        print(question_valid)
         if (question_valid == 'no'):
             await ctx.channel.send(f"{ctx.author.mention}, please ask a question relevant to your or someone else's passions.")
             return
@@ -375,7 +377,7 @@ class AI(commands.Cog):
         return data
 
     # creates context for AI to get better responses
-    def create_context(self, question, max_len=1500, model='text-embedding-3-small', threshold=0.33):
+    def create_context(self, question, max_len=1500, model='text-embedding-3-small', threshold=0.25):
         # any embeddings BELOW (previously above, since we were measuring distances) specified threshold will not be placed into context
 
         # get openai embeddings for the question + convert to dict

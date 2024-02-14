@@ -17,10 +17,10 @@ pinecone_client = Pinecone(api_key=pc_api_key)
 pai_index = pinecone_client.Index("passion-ai-db-serverless")
 
 # testing embeddings if necessary
-q_embeddings = client.embeddings.create(input="I have high curiosity, family, status, acceptance, power passions, Is Cheng Kung University Taiwan Engineering School suitable college for me?", model='text-embedding-3-small', dimensions=1536)
+q_embeddings = client.embeddings.create(input="a", model='text-embedding-3-small', dimensions=1536)
 q_embeddings_dict = q_embeddings.model_dump()
 embeddings = q_embeddings_dict['data'][0]['embedding']
-# print(embeddings)
+print(embeddings)
 
 res = pai_index.query(vector=embeddings, top_k=4, include_metadata=True)
 for i in res['matches']:
