@@ -23,16 +23,6 @@ pinecone_client = Pinecone(api_key=pc_api_key)
 # get correct 'collection' - SERVERLESS now
 pai_index = pinecone_client.Index("passion-ai-db-serverless")
 
-# testing embeddings if necessary
-# q_embeddings = client.embeddings.create(input="What is the difference between a high idealism person and a low vengeance person", model='text-embedding-3-small', dimensions=1536)
-# q_embeddings_dict = q_embeddings.model_dump()
-# embeddings = q_embeddings_dict['data'][0]['embedding']
-# print(embeddings)
-
-# res = pai_index.query(vector=embeddings, top_k=4, include_metadata=True)
-# print(res['matches'][0]['metadata']['text'])
-# exit()
-
 count = 0
 vectors = []
 for embed in data:
