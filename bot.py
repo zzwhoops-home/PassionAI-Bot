@@ -41,13 +41,14 @@ pinecone_client = Pinecone(api_key=PC_API_KEY)
 # get correct 'collection'
 bot.pai_index = pinecone_client.Index("passion-ai-db-serverless")
 
+# set embedding score threshold
+bot.context_threshold = 0.33
+
 # load cogs
 bot.load_extension("cogs.Listeners")
 bot.load_extension("cogs.AI_PINECONE")
 bot.load_extension("cogs.Setup")
 
-# set embedding score threshold
-bot.context_threshold = 0.33
 
 @bot.command(name="reloadall", aliases=["ra"])
 @commands.has_permissions(administrator=True)
