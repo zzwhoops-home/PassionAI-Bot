@@ -85,7 +85,7 @@ class AI(commands.Cog):
         Returns:
             str: A response, either 'yes' or 'no' depending on whether or not the question has to do with "passions"
         """
-        prompt = f"Does this question have anything to do with passions, which are in essence makes up someone's personality and motivations, or have even slight connections to human behavior? Answer simply 'yes' if it does, and 'no' if it does not.\nQuestion: {question}"
+        prompt = f"Is this a valid question that isn't complete gibberish? Answer simply 'yes' if it does, and 'no' if it does not.\nQuestion: {question}"
         messages = [{"role": "user", "content": prompt}]
 
         response = self.client.chat.completions.create(model='gpt-3.5-turbo-0125',
