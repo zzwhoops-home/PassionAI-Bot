@@ -47,11 +47,21 @@ def passion_ai_cloud(request):
             if 'max_tokens' in request_json:
                 max_tokens = request_json['max_tokens']
                 return embeddings_model(question=question, temperature=temperature, max_tokens=max_tokens)
+            elif 'threshold' in request_json:
+                threshold = request_json['threshold']
+                return embeddings_model(question=question, temperature=temperature, max_tokens=max_tokens, threshold=threshold)
             else:
                 return embeddings_model(question=question, temperature=temperature)
         elif 'max_tokens' in request_json:
             max_tokens = request_json['max_tokens']
-            return embeddings_model(question=question, temperature=1.0, max_tokens=max_tokens)
+            if 'threshold' in request_json:
+                threshold = request_json['threshold']
+                return embeddings_model(question=question, temperature=1.0, max_tokens=max_tokens, threshold=threshold)
+            else:
+                return embeddings_model(question=question, temperature=1.0, max_tokens=max_tokens)
+        elif 'threshold' in request_json:
+            threshold = request_json['threshold']
+            return embeddings_model(question=question, temperature=1.0, threshold=threshold)
         else:
             return embeddings_model(question=question)
     elif request_args and 'question' in request_args:
@@ -61,7 +71,7 @@ def passion_ai_cloud(request):
         response = 'Your JSON was invalid or blank. Please enter another response and try again.'
         return response
 
-def embeddings_model(question, temperature=1.0, max_tokens=512):
+def embeddings_model(question, temperature=1.0, max_tokens=512, threshold=0.33):
     length = -1
     q_word_list = question.split(" ")
     for word in q_word_list:
@@ -79,7 +89,7 @@ def embeddings_model(question, temperature=1.0, max_tokens=512):
     explicit="Answer based on the passions provided:"
 
     try:
-        context = create_context(question, max_len=2048, model='text-embedding-3-small', dimensions=1536)
+        context = create_context(question, max_len=2048, model='text-embedding-3-small', dimensions=1536, threshold=threshold)
         # print(context)
     except Exception as e:
         return(e)
@@ -118,9 +128,8 @@ def embeddings_model(question, temperature=1.0, max_tokens=512):
         return(e)
 
 # creates context for AI to get better responses
-def create_context(question, max_len=1500, model='text-embedding-3-small', dimensions=1536):
-    # any embeddings BELOW (previously above, since we were measuring distances) this threshold will not be placed into context
-    threshold = 0.80
+def create_context(question, max_len=1500, model='text-embedding-3-small', dimensions=1536, threshold=0.33):
+    # any embeddings BELOW (previously above, since we were measuring distances) specified threshold will not be placed into context
 
     # get openai embeddings for the question + convert to dict
     q_embeddings = client.embeddings.create(input=question, model=model)
@@ -144,7 +153,3 @@ def create_context(question, max_len=1500, model='text-embedding-3-small', dimen
     # print embeddings used
     print("\n\n###\n\n".join(results))
     return "\n\n###\n\n".join(results)
-
-# if __name__ == "__main__":
-#     print(embeddings_model("In a paragraph, tell me what makes a person with high Idealism, Forgiveness, Order, Expedience, and Soft Power passions unique. Please try to combine all the passions into one statement, and do not list each passion individually."))
-

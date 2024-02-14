@@ -44,12 +44,17 @@ bot.pai_index = pinecone_client.Index("passion-ai-db-serverless")
 # load cogs
 bot.load_extension("cogs.Listeners")
 bot.load_extension("cogs.AI_PINECONE")
+bot.load_extension("cogs.Setup")
+
+# set embedding score threshold
+bot.context_threshold = 0.33
 
 @bot.command(name="reloadall", aliases=["ra"])
 @commands.has_permissions(administrator=True)
 async def reload_all(ctx):
     bot.reload_extension("cogs.Listeners")
     bot.reload_extension("cogs.AI_PINECONE")
+    bot.reload_extension("cogs.Setup")
     await ctx.channel.send("Reloaded all modules!")
 
 @bot.command(name="reloadlisteners", aliases=["rl"])
@@ -63,6 +68,12 @@ async def reload_listeners(ctx):
 async def reload_ai(ctx):
     bot.reload_extension("cogs.AI_PINECONE")
     await ctx.channel.send("Reloaded AI module **only**.")
+
+@bot.command(name="reloadsetup", aliases=["rs"])
+@commands.has_permissions(administrator=True)
+async def reload_setup(ctx):
+    bot.reload_extension("cogs.Setup")
+    await ctx.channel.send("Reloaded setup module **only**")
 
 @bot.command(name="clear")
 @commands.has_permissions(administrator=True)

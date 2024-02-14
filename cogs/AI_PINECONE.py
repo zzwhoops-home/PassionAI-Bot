@@ -153,7 +153,7 @@ class AI(commands.Cog):
         
         # create context for AI model for this specific question
         try:
-            context = self.create_context(question, max_len, model='text-embedding-3-small')
+            context = self.create_context(question, max_len, model='text-embedding-3-small', threshold=self.bot.context_threshold)
         except Exception as e:
             print(e)
             await ctx.channel.send(f"Error: {e}. Please try again, this error may happen after a long period with no API activity.")
@@ -375,9 +375,8 @@ class AI(commands.Cog):
         return data
 
     # creates context for AI to get better responses
-    def create_context(self, question, max_len=1500, model='text-embedding-3-small'):
-        # any embeddings BELOW (previously above, since we were measuring distances) this threshold will not be placed into context
-        threshold = 0.40
+    def create_context(self, question, max_len=1500, model='text-embedding-3-small', threshold=0.33):
+        # any embeddings BELOW (previously above, since we were measuring distances) specified threshold will not be placed into context
 
         # get openai embeddings for the question + convert to dict
         q_embeddings = self.client.embeddings.create(input=question, model=model, dimensions=1536)
