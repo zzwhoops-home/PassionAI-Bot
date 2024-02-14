@@ -15,3 +15,8 @@ AICloud_wDB.py
 cloud_function_test.py
 AICloud_old.py
 AiFunction/embeddings.csv
+
+# Byte-compiled / optimized / DLL files
+cogs/__pycache__/
+*.py[cod]
+*$py.class
