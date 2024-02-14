@@ -17,6 +17,6 @@ AICloud_old.py
 AiFunction/embeddings.csv
 
 # Byte-compiled / optimized / DLL files
-cogs/__pycache__/
+__pycache__/
 *.py[cod]
 *$py.class
