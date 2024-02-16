@@ -49,6 +49,16 @@ bot.load_extension("cogs.Listeners")
 bot.load_extension("cogs.AI_PINECONE")
 bot.load_extension("cogs.Setup")
 
+@bot.event
+async def on_ready():
+    """
+    Prints a message to tell the user about the servers the bot connects to on startup
+    """
+    print(f"Logged in: {bot.user.name}")
+    print(f"-=-=-=-=-=-=-=-=-")
+    print(f"Connected to the following servers:")
+    for guild in bot.guilds:
+        print(f"Bot joined server {guild.name} with id {guild.id}.")
 
 @bot.command(name="reloadall", aliases=["ra"])
 @commands.has_permissions(administrator=True)
@@ -74,7 +84,7 @@ async def reload_ai(ctx):
 @commands.has_permissions(administrator=True)
 async def reload_setup(ctx):
     bot.reload_extension("cogs.Setup")
-    await ctx.channel.send("Reloaded setup module **only**")
+    await ctx.channel.send("Reloaded setup module **only**.")
 
 @bot.command(name="clear")
 @commands.has_permissions(administrator=True)
