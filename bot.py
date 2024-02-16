@@ -36,6 +36,8 @@ bot.chat_history = db['chat_history']
 bot.counter = db['counter']
 bot.guilds_setup = db['guilds_setup']
 
+bot.welcome_msg_list = []
+
 # create connection to pinecone database
 # load pinecone instance
 pinecone_client = Pinecone(api_key=PC_API_KEY)
@@ -60,6 +62,19 @@ async def on_ready():
     print(f"Connected to the following servers:")
     for guild in bot.guilds:
         print(f"Bot joined server {guild.name} with id {guild.id}.")
+
+    await 
+
+async def get_welcome_msgs():
+    projection = {
+        "guild_id": 1,
+        "setup_msg_id": 1
+    }
+
+    msgs = bot.guilds_setup.find(projection)
+    for msg_id in msgs:
+        message = bot.
+        bot.welcome_msg_list.append(msg_id)
 
 @bot.command(name="reloadall", aliases=["ra"])
 @commands.has_permissions(administrator=True)

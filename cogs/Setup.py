@@ -120,7 +120,7 @@ class Setup(commands.Cog):
         await welcome_msg.add_reaction("🍊")
 
         # add to DB after the welcome_msg is sent to get its id
-        await self.setup_verified_update_DB(ctx, welcome_msg, ai_category.id)
+        await self.setup_verified_update_DB(ctx, welcome_msg=welcome_msg, ai_category_id=ai_category.id)
 
         # ensure reaction is valid, and that the reacting user is the author of the setup message
         # REMEMBER TO CHECK CORRECT MESSAGE ID - needs to come from DB
@@ -134,19 +134,20 @@ class Setup(commands.Cog):
         if reaction_str == "🍊":
             await self.create_private_channel(user_response.message.guild, user)
 
-    async def setup_verified_update_DB(self, ctx: nextcord.ext.commands.Context, welcome_msg: nextcord.Message, category_id: int):
+    async def setup_verified_update_DB(self, ctx: nextcord.ext.commands.Context, welcome_msg: nextcord.Message, ai_category_id: int):
         
         # awwoo 
         """Once the user finishes setting up in a channel, update our database with the current guild's ID
         Args:
             ctx (nextcord.ext.commands.Context): Context
-            category_id (int): The category ID for AI channels
+            ai_category_id (int): The category ID for AI channels
         """
 
         # get guild id and name from context
         guild_id = ctx.guild.id
         guild_name = ctx.guild.name
         welcome_msg_id = welcome_msg.id
+        welcome_msg_channel = welcome_msg.channel
 
         # we find one and update because we want to make sure we keep the guild's name up to date
         query = {
@@ -157,12 +158,13 @@ class Setup(commands.Cog):
         data = {
             "$setOnInsert": {
                 "timestamp": datetime.now(),
-                "guild_id": guild_id,
-                "category_id": category_id,
-                "setup_msg_id": welcome_msg_id
+                "guild_id": guild_id
             },
             "$set": {
-                "guild_name": guild_name
+                "guild_name": guild_name,
+                "ai_category_id": ai_category_id,
+                "setup_msg_id": welcome_msg_id,
+                "setup_msg_channel_id": welcome_msg_channel
             }
         }
 
@@ -187,8 +189,8 @@ class Setup(commands.Cog):
         query = {
             "guild_id": guild.id
         }
-        category_id = self.bot.guilds_setup.find_one(query)['category_id']
-        category = nextcord.utils.get(guild.categories, id=category_id)
+        ai_category_id = self.bot.guilds_setup.find_one(query)['ai_category_id']
+        category = nextcord.utils.get(guild.categories, id=ai_category_id)
 
         channel = await guild.create_text_channel(
             name = channel_name,
