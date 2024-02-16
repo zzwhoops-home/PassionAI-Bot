@@ -113,13 +113,13 @@ class Setup(commands.Cog):
 
         # create category for AI
         ai_category = await ctx.guild.create_category("AI Channels")
-
-        # add to DB
-        await self.setup_verified_update_DB(ctx, ai_category.id)
-
+        
         # welcome user and add reaction
         welcome_msg = await ctx.channel.send(f"Welcome to PassionAI! Please click the below reaction to create a private channel for yourself.")
         await welcome_msg.add_reaction("🍊")
+
+        # add to DB after the welcome_msg is sent to get its id
+        await self.setup_verified_update_DB(ctx, welcome_msg, ai_category.id)
 
         # ensure reaction is valid, and that the reacting user is the author of the setup message
         # REMEMBER TO CHECK CORRECT MESSAGE ID - needs to come from DB
@@ -133,8 +133,7 @@ class Setup(commands.Cog):
         if reaction_str == "🍊":
             await self.create_private_channel(user_response.message.guild, user)
 
-
-    async def setup_verified_update_DB(self, ctx: nextcord.ext.commands.Context, category_id: int):
+    async def setup_verified_update_DB(self, ctx: nextcord.ext.commands.Context, welcome_msg: nextcord.Message, category_id: int):
         
         # awwoo 
         """Once the user finishes setting up in a channel, update our database with the current guild's ID
@@ -146,18 +145,20 @@ class Setup(commands.Cog):
         # get guild id and name from context
         guild_id = ctx.guild.id
         guild_name = ctx.guild.name
+        welcome_msg_id = welcome_msg.id
 
         # we find one and update because we want to make sure we keep the guild's name up to date
         query = {
             "guild_id": guild_id
         }
 
-        # set guild id and timestamp on INSERT only    
+        # set guild id, timestamp, category id, setup messasge id on INSERT only    
         data = {
             "$setOnInsert": {
                 "timestamp": datetime.now(),
                 "guild_id": guild_id,
-                "category_id": category_id
+                "category_id": category_id,
+                "setup_msg_id": welcome_msg_id
             },
             "$set": {
                 "guild_name": guild_name
