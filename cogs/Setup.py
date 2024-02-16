@@ -42,7 +42,7 @@ class Setup(commands.Cog):
         await verify_channel_msg.add_reaction("✅")
         await verify_channel_msg.add_reaction("❌")
 
-        async def cancel():
+        async def delete_setup_msgs():
             """
             Within setup: deletes messages used to setup the bot in the channel
             """
@@ -59,17 +59,18 @@ class Setup(commands.Cog):
             # continue to run function that sets up the server
             if reaction_str == "✅":
                 await ctx.channel.send(f"Setting up in <#{ctx.channel.id}>...", delete_after=5.0)
+                await delete_setup_msgs()
                 await self.setup_verified(ctx)
 
-            # go to cancel function
             elif reaction_str == "❌":
                 await ctx.channel.send(f"Canceling!", delete_after=3.0)
-                await cancel()
+                # delete setup messages
+                await delete_setup_msgs()
                 return
         except asyncio.TimeoutError:
-            # go to cancel function
             await ctx.channel.send(f"{ctx.author.mention} You didn't react in time. Please run the command again.", delete_after=10.0)
-            await cancel()
+            # delete setup messages
+            await delete_setup_msgs()
             return
         # except Exception as e:
         #     await ctx.channel.send(f"An error occurred: {e}")
@@ -115,7 +116,7 @@ class Setup(commands.Cog):
         ai_category = await ctx.guild.create_category("AI Channels")
         
         # welcome user and add reaction
-        welcome_msg = await ctx.channel.send(f"Welcome to PassionAI! Please click the below reaction to create a private channel for yourself.")
+        welcome_msg = await ctx.channel.send(f"# Welcome to PassionAI!\nPlease click the below reaction to create a private channel for yourself.")
         await welcome_msg.add_reaction("🍊")
 
         # add to DB after the welcome_msg is sent to get its id
