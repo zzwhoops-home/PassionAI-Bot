@@ -63,18 +63,28 @@ async def on_ready():
     for guild in bot.guilds:
         print(f"Bot joined server {guild.name} with id {guild.id}.")
 
-    await 
+    await get_welcome_msgs()
 
 async def get_welcome_msgs():
     projection = {
-        "guild_id": 1,
+        "setup_msg_channel_id": 1,
         "setup_msg_id": 1
     }
 
-    msgs = bot.guilds_setup.find(projection)
-    for msg_id in msgs:
-        message = bot.
-        bot.welcome_msg_list.append(msg_id)
+    guild_info = bot.guilds_setup.find(projection)
+
+    if guild_info:
+        try:
+            for info in guild_info:
+                channel_id = info['setup_msg_channel_id']
+                message_id = info['setup_msg_id']
+
+                channel = bot.get_channel(channel_id)
+                message = channel.fetch_message(message_id)
+
+                bot.welcome_msg_list.append(message)
+        except Exception as e:
+            print(f"An exception occurred when fetching welcome message: {e}")
 
 @bot.command(name="reloadall", aliases=["ra"])
 @commands.has_permissions(administrator=True)
