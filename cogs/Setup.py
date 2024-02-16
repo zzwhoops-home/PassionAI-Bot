@@ -8,6 +8,8 @@ from openai import OpenAI
 
 import pymongo
 
+from datetime import datetime
+
 class Setup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -23,9 +25,14 @@ class Setup(commands.Cog):
         Returns:
             _type_: _description_
         """
-
         # delete original command message
         await ctx.message.delete()
+
+        # first check if the server has already setup in a channel
+        already_setup = await self.check_already_setup(ctx)
+        if (already_setup):
+            await ctx.channel.send(f"You have already setup PassionAI in **{ctx.guild.name}**. (WIP) Please use a command to change your setup channel.")
+            return
 
         # tell the user we are setting up in this channel
         setup_msg = await ctx.channel.send(f"{ctx.author.mention} You are now setting up **PassionAI** for **{ctx.guild.name}**. Please follow the prompts to proceed.")
@@ -62,11 +69,28 @@ class Setup(commands.Cog):
             await ctx.channel.send(f"An error occurred: {e}")
             return
         
+    async def check_already_setup(self, ctx):
+        """Checks if the server specified in the given context has already gone through the PassionAI setup process
+        Args:
+            ctx (nextcord.ext.commands.Context): Context
+        Returns:
+            bool: whether or not the server has already been setup with PassionAI
+        """
+        # get guild id from context
+        guild_id = ctx.guild.id
+
+        # queries DB to find if the guild is already there
+        query = {
+            "guild_id": guild_id
+        }
+        result = self.bot.guilds_setup.find_one(query)
+
+        # returns if the document was found (guild was already setup)
+        return result is not None
+
     async def setup_verified(self, ctx):
         """
         Runs after the user verifies that they want to setup the bot in this channel.
-        Returns:
-            _type_: _description_
         """
         # get default role
         default_role = ctx.guild.default_role
@@ -83,6 +107,36 @@ class Setup(commands.Cog):
 
         welcome_msg = await ctx.channel.send(f"Welcome to PassionAI! Please click the below reaction to create a private channel for yourself.")
         await welcome_msg.add_reaction("🍊")
+
+        # add to DB
+        await self.setup_verified_update_DB(ctx)
+
+    async def setup_verified_update_DB(self, ctx):
+        """Once the user finishes setting up in a channel, update our database with the current guild's ID
+        Args:
+            ctx (nextcord.ext.commands.Context): Context
+        """
+        # get guild id and name from context
+        guild_id = ctx.guild.id
+        guild_name = ctx.guild.name
+
+        # we find one and update because we want to make sure we keep the guild's name up to date
+        query = {
+            "guild_id": guild_id
+        }
+
+        # set guild id and timestamp on INSERT only    
+        data = {
+            "$setOnInsert": {
+                "timestamp": datetime.now(),
+                "guild_id": guild_id
+            },
+            "$set": {
+                "guild_name": guild_name
+            }
+        }
+
+        self.bot.guilds_setup.find_one_and_update(filter=query, update=data, upsert=True)
 
 def setup(bot):
     bot.add_cog(Setup(bot))

@@ -34,6 +34,7 @@ db = client['PassionAIDB']
 
 bot.chat_history = db['chat_history']
 bot.counter = db['counter']
+bot.guilds_setup = db['guilds_setup']
 
 # create connection to pinecone database
 # load pinecone instance
