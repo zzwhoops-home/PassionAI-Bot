@@ -147,7 +147,7 @@ class Setup(commands.Cog):
         guild_id = ctx.guild.id
         guild_name = ctx.guild.name
         welcome_msg_id = welcome_msg.id
-        welcome_msg_channel = welcome_msg.channel
+        welcome_msg_channel = welcome_msg.channel.id
 
         # we find one and update because we want to make sure we keep the guild's name up to date
         query = {
