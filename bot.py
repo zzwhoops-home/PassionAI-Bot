@@ -82,14 +82,9 @@ async def get_welcome_msgs():
                 channel = bot.get_channel(channel_id)
                 message = await channel.fetch_message(message_id)
 
-                print(message.content)
-
                 bot.welcome_msg_list.append(message)
         except Exception as e:
             print(f"An exception occurred when fetching welcome message: {e}")
-
-    print(bot.welcome_msg_list)
-    
 
 @bot.command(name="reloadall", aliases=["ra"])
 @commands.has_permissions(administrator=True)
