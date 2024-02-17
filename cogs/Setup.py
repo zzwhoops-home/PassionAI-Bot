@@ -122,17 +122,22 @@ class Setup(commands.Cog):
         # add to DB after the welcome_msg is sent to get its id
         await self.setup_verified_update_DB(ctx, welcome_msg=welcome_msg, ai_category_id=ai_category.id)
 
-        # ensure reaction is valid, and that the reacting user is the author of the setup message
-        # REMEMBER TO CHECK CORRECT MESSAGE ID - needs to come from DB
-        def check_message(user_response, user):
-            return str(user_response.emoji) == "🍊" and user_response.message.id == welcome_msg.id and user.id != self.bot.user.id
-        
-        user_response, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_message)
-        reaction_str = str(user_response.emoji)
+        # add message ID to id array of current instance
+        self.bot.welcome_msg_list.append(welcome_msg.id)
 
-        # unnecessary right now, may be useful later
-        if reaction_str == "🍊":
-            await self.create_private_channel(user_response.message.guild, user)
+        # the code below is not needed anymore: everything is now handled in an on_raw_reaction_add listener!
+
+        # # ensure reaction is valid, and that the reacting user is the author of the setup message
+        # # REMEMBER TO CHECK CORRECT MESSAGE ID - needs to come from DB
+        # def check_message(user_response, user):
+        #     return str(user_response.emoji) == "🍊" and user_response.message.id == welcome_msg.id and user.id != self.bot.user.id
+        
+        # user_response, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_message)
+        # reaction_str = str(user_response.emoji)
+
+        # # unnecessary right now, may be useful later
+        # if reaction_str == "🍊":
+        #     await self.create_private_channel(user_response.message.guild, user)
 
     async def setup_verified_update_DB(self, ctx: nextcord.ext.commands.Context, welcome_msg: nextcord.Message, ai_category_id: int):
         

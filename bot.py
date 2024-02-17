@@ -66,23 +66,25 @@ async def on_ready():
     await get_welcome_msgs()
 
 async def get_welcome_msgs():
+    """
+    Called by on_ready - gets welcome messages on bot startup to start listening for reaction clicks
+    """
+    # projection to only get setup message channel/message ids
     projection = {
-        "setup_msg_channel_id": 1,
         "setup_msg_id": 1
     }
 
+    # get pymongo object
     guild_info = bot.guilds_setup.find(projection=projection)
 
+    # only try if guild_info is not None
     if guild_info:
         try:
+            # get IDs of messages only
             for info in guild_info:
-                channel_id = info['setup_msg_channel_id']
                 message_id = info['setup_msg_id']
-
-                channel = bot.get_channel(channel_id)
-                message = await channel.fetch_message(message_id)
-
-                bot.welcome_msg_list.append(message)
+                bot.welcome_msg_list.append(message_id)
+        # not sure what exceptions could happen but catch them here
         except Exception as e:
             print(f"An exception occurred when fetching welcome message: {e}")
 
