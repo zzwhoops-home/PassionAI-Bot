@@ -258,7 +258,7 @@ class AI(commands.Cog):
                 return
 
             placeholder = await ctx.channel.send("https://i.ibb.co/XFyxJPh/unnamed.gif")
-            temperature = 0.5
+            temperature = 1.0
 
             try:
                 response = None
