@@ -35,6 +35,7 @@ db = client['PassionAIDB']
 bot.chat_history = db['chat_history']
 bot.counter = db['counter']
 bot.guilds_setup = db['guilds_setup']
+bot.user_list = db['user_list']
 
 bot.welcome_msg_list = []
 
@@ -132,6 +133,11 @@ async def clear(ctx, num=1):
     num_cleared = await ctx.channel.send(f"I have cleared **{num}** messages!")
     await asyncio.sleep(3)
     await num_cleared.delete()
+
+@bot.command(name="forcecreate")
+@commands.has_permissions(administrator=True)
+async def force_create(ctx):
+    await ctx.channel.send(f"Forcing creation of channel for {ctx.member}")
 
 # @bot.command(name="thing")
 # @commands.has_permissions(administrator=True)
