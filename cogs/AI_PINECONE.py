@@ -123,10 +123,10 @@ class AI(commands.Cog):
         length = -1
         question = f"{' '.join(question)}"
 
-        question_valid = await self.check_valid_question(question)
-        if (question_valid == 'no'):
-            await ctx.channel.send(f"{ctx.author.mention}, please ask a question relevant to your or someone else's passions.")
-            return
+        # question_valid = await self.check_valid_question(question)
+        # if (question_valid == 'no'):
+        #     await ctx.channel.send(f"{ctx.author.mention}, please ask a question relevant to your or someone else's passions.")
+        #     return
 
         for word in question:
             length += len(word)
