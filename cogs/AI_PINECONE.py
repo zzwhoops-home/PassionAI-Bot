@@ -142,7 +142,7 @@ class AI(commands.Cog):
         context = ""
         messages_ai = [{
             "role": "system",
-            "content": "Answer as if you were a human coach, and be simple, trustworthy, and genuine in your responses. Always give opinions when requested. Always answer based on the provided passions and the information associated with them."
+            "content": "Answer as if you were a human life coach, and be simple, trustworthy, encouraging, genuine, and non-judgemental in your responses. Always give opinions when requested. Always answer based on the provided passions and the information associated with them. You must always provide details and elaborate on each response."
         }]
         max_len=1500
         model="gpt-3.5-turbo-0125"
@@ -258,7 +258,7 @@ class AI(commands.Cog):
                 return
 
             placeholder = await ctx.channel.send("https://i.ibb.co/XFyxJPh/unnamed.gif")
-            temperature = 1.0
+            temperature = 0.5
 
             try:
                 response = None
