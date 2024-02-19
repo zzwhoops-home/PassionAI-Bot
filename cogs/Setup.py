@@ -181,10 +181,26 @@ class Setup(commands.Cog):
             guild (nextcord.Guild): The guild to create the channel in
             user (nextcord.Member): The user who reacted with the setup message
         """
+        
+        # ping the user in their AI channel if the user has already created a channel in the given guild
+        user_check_res = await self.check_user_channel(guild, user)
+        if (user_check_res):
+            channel_id = user_check_res['channel_id']
+            channel = self.bot.get_channel(channel_id)
+
+            await channel.send(f"{user.mention} You clicked the orange again! You may only have one channel per server that PassionAI is in.")
+            return
+
         # get guild default role (everyone)
         default_role = guild.default_role
 
+        # get guild id
+        guild_id = guild.id
+
+        # set channel name
         channel_name = f"{user.name}-AI"
+
+        # set channel permissions
         permissions = {
             default_role: PermissionOverwrite(view_channel=False),
             user: PermissionOverwrite(view_channel=True)
@@ -192,18 +208,53 @@ class Setup(commands.Cog):
 
         # get category ID of guild
         query = {
-            "guild_id": guild.id
+            "guild_id": guild_id
         }
         ai_category_id = self.bot.guilds_setup.find_one(query)['ai_category_id']
         category = nextcord.utils.get(guild.categories, id=ai_category_id)
 
+        # create private user channel in category
         channel = await guild.create_text_channel(
             name = channel_name,
             overwrites = permissions,
             category = category
         )
 
+        # get channel id and user id
+        user_id = user.id
+        channel_id = channel.id
+
+        # insert channel data into DB
+        data = {
+            "timestamp": datetime.now(),
+            "user_id": user_id,
+            "guild_id": guild_id,
+            "channel_id": channel_id
+        }
+        self.bot.user_list.insert_one(data)
+
         await channel.send(f"{user.mention} This is your private channel. Do note that server administrators, including the PQLife team, will be able to see your questions and PassionAI's responses.")
+
+    async def check_user_channel(self, guild: nextcord.Guild, user: nextcord.User):
+        """Checks if the given user has already setup a channel in the provided guild
+        Args:
+            guild (nextcord.Guild): _description_
+            user (nextcord.User): _description_
+
+        Returns:
+            dict: Response from querying the collection of current users and their AI channels
+        """
+        # get guild and user id
+        guild_id = guild.id
+        user_id = user.id
+        
+        # query DB
+        query = {
+            "guild_id": guild_id,
+            "user_id": user_id
+        }
+        response = self.bot.user_list.find_one(filter=query)
+        return response
 
 def setup(bot):
     bot.add_cog(Setup(bot))
