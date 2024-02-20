@@ -46,7 +46,7 @@ pinecone_client = Pinecone(api_key=PC_API_KEY)
 bot.pai_index = pinecone_client.Index("passion-ai-db-serverless")
 
 # set embedding score threshold
-bot.context_threshold = 0.25
+bot.context_threshold = 0.33
 
 # load cogs
 bot.load_extension("cogs.Listeners")
