@@ -391,13 +391,18 @@ class AI(commands.Cog):
         cur_len = 0
         results = []
 
+        # enable one extra "try" if score threshold is not reached
+        tried = False
         for item in res['matches']:
             print(item['score'])
             if item['score'] > threshold and cur_len < max_len:
                 cur_len += item['metadata']['token_ct'] + 4
                 results.append(item['metadata']['text'])
             else:
-                break
+                if tried:
+                    break
+                else:
+                    threshold = 0.25
             
         # print embeddings used
         print("\n\n###\n\n".join(results))
