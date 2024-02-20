@@ -377,7 +377,7 @@ class AI(commands.Cog):
         return data
 
     # creates context for AI to get better responses
-    def create_context(self, question, max_len=1500, model='text-embedding-3-small', threshold=0.25):
+    def create_context(self, question, max_len=1500, model='text-embedding-3-small', threshold=0.33):
         # any embeddings BELOW (previously above, since we were measuring distances) specified threshold will not be placed into context
 
         # get openai embeddings for the question + convert to dict
