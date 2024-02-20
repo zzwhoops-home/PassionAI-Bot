@@ -36,6 +36,7 @@ bot.chat_history = db['chat_history']
 bot.counter = db['counter']
 bot.guilds_setup = db['guilds_setup']
 bot.user_list = db['user_list']
+bot.admin_list = db['admin_list']
 
 bot.welcome_msg_list = []
 
@@ -52,6 +53,7 @@ bot.context_threshold = 0.25
 bot.load_extension("cogs.Listeners")
 bot.load_extension("cogs.AI_PINECONE")
 bot.load_extension("cogs.Setup")
+bot.load_extension("cogs.Admin")
 
 @bot.event
 async def on_ready():
@@ -88,32 +90,6 @@ async def get_welcome_msgs():
         # not sure what exceptions could happen but catch them here
         except Exception as e:
             print(f"An exception occurred when fetching welcome message: {e}")
-
-@bot.command(name="reloadall", aliases=["ra"])
-@commands.has_permissions(administrator=True)
-async def reload_all(ctx):
-    bot.reload_extension("cogs.Listeners")
-    bot.reload_extension("cogs.AI_PINECONE")
-    bot.reload_extension("cogs.Setup")
-    await ctx.channel.send("Reloaded all modules!")
-
-@bot.command(name="reloadlisteners", aliases=["rl"])
-@commands.has_permissions(administrator=True)
-async def reload_listeners(ctx):
-    bot.reload_extension("cogs.Listeners")
-    await ctx.channel.send("Reloaded listeners module **only**.")
-
-@bot.command(name="reloadai", aliases=["rai"])
-@commands.has_permissions(administrator=True)
-async def reload_ai(ctx):
-    bot.reload_extension("cogs.AI_PINECONE")
-    await ctx.channel.send("Reloaded AI module **only**.")
-
-@bot.command(name="reloadsetup", aliases=["rs"])
-@commands.has_permissions(administrator=True)
-async def reload_setup(ctx):
-    bot.reload_extension("cogs.Setup")
-    await ctx.channel.send("Reloaded setup module **only**.")
 
 @bot.command(name="clear")
 @commands.has_permissions(administrator=True)
