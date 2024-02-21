@@ -11,7 +11,7 @@ class Listeners(commands.Cog):
             msg = message.content
             bot_mention = f"{self.bot.user.mention}"
             # if the bot is pinged, activate a chat instance
-            if bot_mention in msg:
+            if bot_mention in msg and self.bot.prefix not in msg:
                 context = await self.bot.get_context(message)
                 mentions = message.mentions
 

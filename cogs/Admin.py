@@ -96,6 +96,9 @@ class Admin(commands.Cog):
             choice (str, optional): Either to add or remove. Defaults to "", which will be an invalid response.
             user (nextcord.Member, optional): The Member to add. Will automatically default to ctx.author
         """
+        if (not await self.check_user_admin(ctx)):
+            return
+
         if user is None:
             user = ctx.author
 
@@ -121,7 +124,7 @@ class Admin(commands.Cog):
             }
             self.bot.admin_list.find_one_and_update(filter=query, update=data, upsert=True)
 
-            await ctx.channel.send(f"Added {user.mention} to the list of bot manager.")
+            await ctx.channel.send(f"Added {user.mention} to the list of bot managers.")
 
         async def admin_remove():
             """
@@ -134,7 +137,7 @@ class Admin(commands.Cog):
             query = {
                 "user_id": user_id
             }
-            self.bot.admin_list.remove(query)
+            self.bot.admin_list.delete_one(query)
 
             await ctx.channel.send(f"Removed {user.mention} from being a bot manager.")
 
@@ -161,7 +164,7 @@ class Admin(commands.Cog):
 
         response = self.bot.admin_list.find_one(query)
         if response is None:
-            await ctx.channel.send("You may not run this command, as you are not authorized to manage the bot.")
+            await ctx.channel.send(f"{ctx.author.mention}, you may not run this command, as you are not authorized as a bot manager.")
             return False
         return True
 

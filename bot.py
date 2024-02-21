@@ -27,6 +27,8 @@ class PQBot(commands.Bot):
      
 # config bot
 bot = PQBot(True, command_prefix=prefix, intents=intents)
+# for accessing prefix in other code
+bot.prefix = prefix
 
 # create connection to mongodb database
 client = pymongo.MongoClient(f"mongodb+srv://{MONGO_USER}:{MONGO_PWD}@passionaibot.4dwr2me.mongodb.net/?retryWrites=true&w=majority")
