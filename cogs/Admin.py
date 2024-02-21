@@ -153,7 +153,7 @@ class Admin(commands.Cog):
         Returns:
             bool: whether the user is a bot manager or not
         """
-        user_id = ctx.member.id
+        user_id = ctx.author.id
 
         query = {
             "user_id": user_id
