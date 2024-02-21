@@ -21,7 +21,7 @@ class Admin(commands.Cog):
         Args:
             ctx (nextcord.ext.commands.Context): Context
         """
-        if (not await self.check_user_admin(ctx.author)):
+        if (not await self.check_user_admin(ctx)):
             return
 
         self.bot.reload_extension("cogs.Listeners")
@@ -38,7 +38,7 @@ class Admin(commands.Cog):
         Args:
             ctx (nextcord.ext.commands.Context): Context
         """
-        if (not await self.check_user_admin(ctx.author)):
+        if (not await self.check_user_admin(ctx)):
             return
         
         self.bot.reload_extension("cogs.Listeners")
@@ -52,7 +52,7 @@ class Admin(commands.Cog):
         Args:
             ctx (nextcord.ext.commands.Context): Context
         """
-        if (not await self.check_user_admin(ctx.author)):
+        if (not await self.check_user_admin(ctx)):
             return
         
         self.bot.reload_extension("cogs.AI_PINECONE")
@@ -66,7 +66,7 @@ class Admin(commands.Cog):
         Args:
             ctx (nextcord.ext.commands.Context): Context
         """
-        if (not await self.check_user_admin(ctx.author)):
+        if (not await self.check_user_admin(ctx)):
             return
         
         self.bot.reload_extension("cogs.Setup")
