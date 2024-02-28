@@ -76,6 +76,41 @@ class Setup(commands.Cog):
         #     await ctx.channel.send(f"An error occurred: {e}")
         #     return
         
+    @commands.command(name="channels")
+    @commands.has_permissions(administrator=True)
+    async def channel_manager(self, ctx: nextcord.ext.commands.Context, choice: str = "", user: nextcord.Member = None):
+        """Command for managing channels:
+        - channels add: adds an AI channel for a user if they don't already have one in the server
+        - channels remove: removes an AI channel for a user if they don't already have one
+        - channels reset: removes, then adds an AI channel
+        Args:
+            ctx (nextcord.ext.commands.Context): Context
+            choice (str, optional): Choice between 'add', 'remove' and 'reset'. Defaults to "".
+            user (nextcord.Member, optional): Member you would like to add/remove/reset the AI channel for. Defaults to ctx.author.
+        """
+
+        async def add_channel():
+            return
+        
+        async def remove_channel():
+            return
+        
+        async def reset_channel():
+            await add_channel()
+            await remove_channel()
+
+        # ensure all capitalizations work
+        choice = choice.strip().lower()
+
+        if (choice == "add"):
+            return
+        elif (choice == "remove"):
+            return
+        elif (choice == "reset"):
+            return
+        else:
+            await ctx.channel.send(f"You must choose between 'add', 'remove', and 'reset'. '{choice}' is not a valid choice.")
+
     async def check_already_setup(self, ctx):
         """Checks if the server specified in the given context has already gone through the PassionAI setup process
         Args:
