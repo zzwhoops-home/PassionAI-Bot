@@ -141,12 +141,15 @@ class Admin(commands.Cog):
 
             await ctx.channel.send(f"Removed {user.mention} from being a bot manager.")
 
+        # ensure all capitalizations work
+        choice = choice.strip().lower()
+        
         if (choice == "add"):
             await admin_add()
         elif (choice == "remove"):
             await admin_remove()
         else:
-            await ctx.channel.send("Please choose either 'add' or 'remove'")
+            await ctx.channel.send(f"Please choose either 'add' or 'remove'. '{choice}' is not a valid choice.")
 
     async def check_user_admin(self, ctx: nextcord.ext.commands.Context):
         """Checks if the current user is authorized to manage the bot
