@@ -105,7 +105,7 @@ class Setup(commands.Cog):
                 return
 
             await self.create_private_channel(ctx.guild, user)
-        
+
         async def remove_channel():
             already_setup = await self.check_already_setup(ctx)
             if (not already_setup):
@@ -113,25 +113,26 @@ class Setup(commands.Cog):
                 return
             
             # confirm that the user actually wants to delete the channel
-            confirm_message = await ctx.channel.send(f"Are you sure you want to delete {user.mention}'s channel?")
+            confirm_message = await ctx.channel.send(f"Are you sure you want to delete {user.mention}'s channel?")            
             await confirm_message.add_reaction("✅")
             await confirm_message.add_reaction("❌")
 
             # ensure reaction is valid, and that the reacting user is the author of the setup message, and that the reaction is on the correct message
-            def check_message(user_response, user):
-                return user == ctx.author and str(user_response.emoji) in ["✅", "❌"] and user_response.message.id == confirm_message.id
+            def check_message(user_response, reactor):
+                return reactor == ctx.author and str(user_response.emoji) in ["✅", "❌"] and user_response.message.id == confirm_message.id
             try:
-                user_response, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_message)
+                user_response, reactor = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_message)
                 reaction_str = str(user_response.emoji)
 
                 if reaction_str == "✅":
-                    await self.remove_private_channel(user)
+                    await ctx.channel.send("Removing channel...")
+                    await self.remove_private_channel(ctx.guild, user)
                 elif reaction_str == "❌":
                     await ctx.channel.send("Action canceled.", delete_after=5)
             except asyncio.TimeoutError:
                 await ctx.channel.send(f"{ctx.author.mention} You didn't react in time. Please run the command again.", delete_after=10.0)
                 return
-        
+            
         async def reset_channel():
             await remove_channel()
             await add_channel()
@@ -146,7 +147,7 @@ class Setup(commands.Cog):
         elif (choice == "reset"):
             await reset_channel()
         else:
-            await ctx.channel.send(f"You must choose between 'add', 'remove', and 'reset'. '{choice}' is not a valid choice.")
+            await ctx.channel.send(f"You must choose between 'add', 'remove', and 'reset'. \"{choice}\" is not a valid choice.")
 
     async def check_already_setup(self, ctx):
         """Checks if the server specified in the given context has already gone through the PassionAI setup process
@@ -323,7 +324,15 @@ class Setup(commands.Cog):
             "guild_id": guild_id,
             "user_id": user_id
         }
-        self.bot.admin_list.delete_one(query)
+        # find correct channel id
+        response = self.bot.user_list.find_one(query)
+        channel_id = response['channel_id']
+
+        # delete channel from guild
+        await guild.get_channel(channel_id).delete()
+
+        # remove entry from DB
+        self.bot.user_list.delete_one(query)
 
     async def check_user_channel(self, guild: nextcord.Guild, user: nextcord.User):
         """Checks if the given user has already setup a channel in the provided guild
