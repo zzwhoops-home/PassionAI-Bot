@@ -82,11 +82,10 @@ class Setup(commands.Cog):
         """Command for managing channels:
         - channels add: adds an AI channel for a user if they don't already have one in the server
         - channels remove: removes an AI channel for a user if they don't already have one
-        - channels reset: removes, then adds an AI channel
         Args:
             ctx (nextcord.ext.commands.Context): Context
-            choice (str, optional): Choice between 'add', 'remove' and 'reset'. Defaults to "".
-            user (nextcord.Member, optional): Member you would like to add/remove/reset the AI channel for. Defaults to ctx.author.
+            choice (str, optional): Choice between 'add' or 'remove'. Defaults to "".
+            user (nextcord.Member, optional): Member you would like to add/remove the AI channel for. Defaults to ctx.author.
         """
         # ensure that the person running the command has permission to manage the bot
         admin_cog = self.bot.get_cog("Admin")
@@ -132,10 +131,6 @@ class Setup(commands.Cog):
             except asyncio.TimeoutError:
                 await ctx.channel.send(f"{ctx.author.mention} You didn't react in time. Please run the command again.", delete_after=10.0)
                 return
-            
-        async def reset_channel():
-            await remove_channel()
-            await add_channel()
 
         # ensure all capitalizations work
         choice = choice.strip().lower()
@@ -144,10 +139,8 @@ class Setup(commands.Cog):
             await add_channel()
         elif (choice == "remove"):
             await remove_channel()
-        elif (choice == "reset"):
-            await reset_channel()
         else:
-            await ctx.channel.send(f"You must choose between 'add', 'remove', and 'reset'. \"{choice}\" is not a valid choice.")
+            await ctx.channel.send(f"You must choose between 'add' or 'remove'. \"{choice}\" is not a valid choice.")
 
     async def check_already_setup(self, ctx):
         """Checks if the server specified in the given context has already gone through the PassionAI setup process
