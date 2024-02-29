@@ -88,26 +88,63 @@ class Setup(commands.Cog):
             choice (str, optional): Choice between 'add', 'remove' and 'reset'. Defaults to "".
             user (nextcord.Member, optional): Member you would like to add/remove/reset the AI channel for. Defaults to ctx.author.
         """
+        # ensure that the person running the command has permission to manage the bot
+        admin_cog = self.bot.get_cog("Admin")
+        check_user_admin = await admin_cog.check_user_admin(ctx)
+        if (not check_user_admin):
+            await ctx.channel.send(f"You must be a bot manager to use this command!")
+
+        # set user to the person running the command if they do not specify a person
+        if (user is None):
+            user = ctx.author
 
         async def add_channel():
-            return
+            already_setup = await self.check_already_setup(ctx)
+            if (already_setup):
+                await ctx.channel.send(f"User {user.mention} already has a channel setup in this server.")
+                return
+
+            await self.create_private_channel(ctx.guild, user)
         
         async def remove_channel():
-            return
+            already_setup = await self.check_already_setup(ctx)
+            if (not already_setup):
+                await ctx.channel.send(f"User {user.mention} has not set up a channel in this server yet.")
+                return
+            
+            # confirm that the user actually wants to delete the channel
+            confirm_message = await ctx.channel.send(f"Are you sure you want to delete {user.mention}'s channel?")
+            await confirm_message.add_reaction("✅")
+            await confirm_message.add_reaction("❌")
+
+            # ensure reaction is valid, and that the reacting user is the author of the setup message, and that the reaction is on the correct message
+            def check_message(user_response, user):
+                return user == ctx.author and str(user_response.emoji) in ["✅", "❌"] and user_response.message.id == confirm_message.id
+            try:
+                user_response, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_message)
+                reaction_str = str(user_response.emoji)
+
+                if reaction_str == "✅":
+                    await self.remove_private_channel(user)
+                elif reaction_str == "❌":
+                    await ctx.channel.send("Action canceled.", delete_after=5)
+            except asyncio.TimeoutError:
+                await ctx.channel.send(f"{ctx.author.mention} You didn't react in time. Please run the command again.", delete_after=10.0)
+                return
         
         async def reset_channel():
-            await add_channel()
             await remove_channel()
+            await add_channel()
 
         # ensure all capitalizations work
         choice = choice.strip().lower()
 
         if (choice == "add"):
-            return
+            await add_channel()
         elif (choice == "remove"):
-            return
+            await remove_channel()
         elif (choice == "reset"):
-            return
+            await reset_channel()
         else:
             await ctx.channel.send(f"You must choose between 'add', 'remove', and 'reset'. '{choice}' is not a valid choice.")
 
@@ -269,6 +306,24 @@ class Setup(commands.Cog):
         self.bot.user_list.insert_one(data)
 
         await channel.send(f"{user.mention} This is your private channel. Do note that server administrators, including the PQLife team, will be able to see your questions and PassionAI's responses.")
+
+    async def remove_private_channel(self, guild: nextcord.Guild, user: nextcord.Member):
+        """
+        Removes a pre-existing private channel for a user to interact privately with PassionAI
+        Note that this command will not do anything if the user has not already created a channel
+            guild (nextcord.Guild): The guild to remove the channel in
+            user (nextcord.Member): The user that should have their channel removed
+        """
+        # get user and guild ID
+        guild_id = guild.id
+        user_id = user.id
+
+        # delete from channels already setup in DB
+        query = {
+            "guild_id": guild_id,
+            "user_id": user_id
+        }
+        self.bot.admin_list.delete_one(query)
 
     async def check_user_channel(self, guild: nextcord.Guild, user: nextcord.User):
         """Checks if the given user has already setup a channel in the provided guild
