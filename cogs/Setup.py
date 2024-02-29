@@ -99,7 +99,7 @@ class Setup(commands.Cog):
             user = ctx.author
 
         async def add_channel():
-            already_setup = await self.check_already_setup(ctx)
+            already_setup = await self.check_user_channel(ctx)
             if (already_setup):
                 await ctx.channel.send(f"User {user.mention} already has a channel setup in this server.")
                 return
@@ -107,7 +107,7 @@ class Setup(commands.Cog):
             await self.create_private_channel(ctx.guild, user)
 
         async def remove_channel():
-            already_setup = await self.check_already_setup(ctx)
+            already_setup = await self.check_user_channel(ctx)
             if (not already_setup):
                 await ctx.channel.send(f"User {user.mention} has not set up a channel in this server yet.")
                 return
