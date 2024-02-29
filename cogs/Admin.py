@@ -74,7 +74,7 @@ class Admin(commands.Cog):
         
     @commands.command(name="reloadadmin", aliases=["rad"])
     @commands.has_permissions(administrator=True)
-    async def reload_setup(self, ctx):
+    async def reload_admin(self, ctx):
         """
         Reloads the Admin cog
         Args:
