@@ -147,6 +147,9 @@ class Admin(commands.Cog):
         if (choice == "add"):
             await admin_add()
         elif (choice == "remove"):
+            if (ctx.author.id == user.id):
+                await ctx.channel.send(f"You can't remove yourself from being a bot manager!")
+                return
             await admin_remove()
         else:
             await ctx.channel.send(f"Please choose either 'add' or 'remove'. '{choice}' is not a valid choice.")
