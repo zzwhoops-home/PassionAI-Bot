@@ -147,7 +147,6 @@ class AI(commands.Cog):
         max_len=1500
         model="gpt-3.5-turbo-0125"
         max_tokens=512
-        stop_sequence=None
         # try several different 'explicit' messages, like 'Answer based on the passions provided:', 'Based on my passions, ', etc...
         explicit="Based on these passions, "
 
@@ -268,9 +267,8 @@ class AI(commands.Cog):
                                                             temperature=temperature,
                                                             max_tokens=max_tokens,
                                                             top_p=1,
-                                                            frequency_penalty=0,
-                                                            presence_penalty=0,
-                                                            stop=stop_sequence)
+                                                            frequency_penalty=0.5,
+                                                            presence_penalty=0.5)
 
                     # convert to json, extract text with no new lines
                     response_json = response.model_dump()
