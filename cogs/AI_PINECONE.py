@@ -331,8 +331,13 @@ class AI(commands.Cog):
         await self.embeddings_model(ctx=ctx, question=question, store_db=False)
         return
 
-    # function to handle summarizing text for easier storage in DB
-    async def summarize(self, text):
+    async def summarize(self, text: str):
+        """Function to summarize a longer response from GPT for easier storage in DB
+        Args:
+            text (str): The text to summarize
+        Returns:
+            str: The summarized text
+        """
         model="gpt-3.5-turbo-0125"
         max_tokens=512
         stop_sequence=None
@@ -364,8 +369,11 @@ class AI(commands.Cog):
         print(f"[{dt_string}]: {response_text}")
         return response_text
 
-    # increments number of total chat logs stored in DB
     async def counter(self):
+        """ increments number of total chat logs stored in DB
+        Returns:
+            dict: the ID counter with information
+        """
         filter = {}
         data = {
             "$inc": {
@@ -376,8 +384,17 @@ class AI(commands.Cog):
         data = self.bot.counter.find_one_and_update(filter=filter, update=data, return_document=pymongo.ReturnDocument.BEFORE)
         return data
 
-    # creates context for AI to get better responses
-    def create_context(self, question, max_len=1500, model='text-embedding-3-small', threshold=0.33):
+    def create_context(self, question: str, max_len: int=1500, model: str='text-embedding-3-small', threshold: float=0.33):
+        """ Creates context for AI using vector embeddings
+        Args:
+            question (str): the question being asked by the user
+            max_len (int, optional): max length of context. Defaults to 1500.
+            model (str, optional): the OpenAI embedding model to use. Defaults to 'text-embedding-3-small'.
+            threshold (float, optional): threshold of accepting responses pulled from DB. Defaults to 0.33.
+
+        Returns:
+            str: all embeddings pulled formatted for use in LLM context
+        """
         # any embeddings BELOW (previously above, since we were measuring distances) specified threshold will not be placed into context
 
         # get openai embeddings for the question + convert to dict
